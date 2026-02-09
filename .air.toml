@@ -1,0 +1,44 @@
+# Air configuration for hot-reload
+# Documentation: https://github.com/cosmtrek/air
+
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  # Build command
+  cmd = "go build -o ./tmp/main.exe ./cmd"
+  # Binary to run
+  bin = "tmp/main.exe"
+  # Build delay after file changes (in milliseconds)
+  delay = 200
+  # Watch these file extensions
+  include_ext = ["go", "env"]
+  # Exclude directories
+  exclude_dir = ["vendor", "log", "logs", "tmp", "node_modules", "bin", "templates", "upload", "assets"]
+  # Exclude files
+  exclude_file = []
+  # Exclude regex patterns
+  exclude_regex = ["_test\\.go$"]
+  # Exclude unchanged files
+  exclude_unchanged = true
+  # Follow symlinks
+  follow_symlink = false
+  # Stop old processes completely before starting new ones (fixes Windows file locking)
+  kill_delay = "500ms"
+  # Send interrupt signal before kill
+  send_interrupt = true
+
+[log]
+  # Show log time
+  time = true
+
+[color]
+  # Customize colors
+  build = "yellow"
+  runner = "green"
+  watcher = "magenta"
+  main = "cyan"
+
+[misc]
+  # Delete tmp directory on exit
+  clean_on_exit = true

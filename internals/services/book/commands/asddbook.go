@@ -2,7 +2,7 @@ package commands
 
 import "github.com/Pr3c10us/absolutego/internals/domains/book"
 
-type CreateBook struct {
+type AddBook struct {
 	bookImplementation book.Interface
 }
 
