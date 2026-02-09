@@ -1,0 +1,6 @@
+/.env
+/.idea
+/books
+/database.db
+/tmp
+/upload
