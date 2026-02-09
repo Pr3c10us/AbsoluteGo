@@ -14,7 +14,7 @@ tmp_dir = "tmp"
   # Watch these file extensions
   include_ext = ["go", "env"]
   # Exclude directories
-  exclude_dir = ["vendor", "log", "logs", "tmp", "node_modules", "bin", "templates", "upload", "assets"]
+  exclude_dir = ["vendor", "books", "log", "logs", "tmp", "node_modules", "bin", "templates", "uploads", "assets"]
   # Exclude files
   exclude_file = []
   # Exclude regex patterns

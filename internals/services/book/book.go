@@ -15,22 +15,28 @@ type Services struct {
 }
 
 type Commands struct {
-	AddChapter *commands.AddChapter
-	CreateBook *commands.CreateBook
+	AddChapter    *commands.AddChapter
+	AddBook       *commands.AddBook
+	DeleteBook    *commands.DeleteBook
+	DeleteChapter *commands.DeleteChapter
 }
 
 type Queries struct {
-	GetBooks *queries.GetBooks
+	GetBooks    *queries.GetBooks
+	GetChapters *queries.GetChapters
 }
 
 func NewBookServices(bookImplementation book.Interface, storageImplementation storage.Interface, aiImplementation ai.Interface, environmentVariables *configs.EnvironmentVariables) Services {
 	return Services{
 		Commands: Commands{
-			AddChapter: commands.NewAddChapter(bookImplementation, storageImplementation, aiImplementation, environmentVariables),
-			CreateBook: commands.NewCreateBook(bookImplementation),
+			AddChapter:    commands.NewAddChapter(bookImplementation, storageImplementation, aiImplementation, environmentVariables),
+			AddBook:       commands.NewAddBook(bookImplementation),
+			DeleteBook:    commands.NewDeleteBook(bookImplementation, storageImplementation),
+			DeleteChapter: commands.NewDeleteChapter(bookImplementation, storageImplementation),
 		},
 		Queries: Queries{
-			GetBooks: queries.NewGetBooks(bookImplementation),
+			GetBooks:    queries.NewGetBooks(bookImplementation),
+			GetChapters: queries.NewGetChapters(bookImplementation),
 		},
 	}
 }

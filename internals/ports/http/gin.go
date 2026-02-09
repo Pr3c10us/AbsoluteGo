@@ -2,6 +2,7 @@ package http
 
 import (
 	"fmt"
+
 	"github.com/Pr3c10us/absolutego/internals/adapters"
 	"github.com/Pr3c10us/absolutego/internals/ports/http/book"
 	"github.com/Pr3c10us/absolutego/internals/services"
@@ -49,7 +50,13 @@ func (server *GinServer) bookRoutes() {
 	handler := book.NewBookHandler(server.Services.BookServices, server.Environment)
 	bookRoute := server.Engine.Group("/api/v1/book")
 	{
-		bookRoute.POST("", handler.AddChapter)
+		bookRoute.POST("", handler.AddBook)
+		bookRoute.GET("", handler.GetBooks)
+		bookRoute.DELETE("/:id", handler.DeleteBook)
+
+		bookRoute.POST("/chapter", handler.AddChapter)
+		bookRoute.GET("/chapter", handler.GetChapters)
+		bookRoute.DELETE("/chapter/:id", handler.DeleteChapter)
 	}
 }
 

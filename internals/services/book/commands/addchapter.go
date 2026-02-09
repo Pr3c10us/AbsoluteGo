@@ -443,7 +443,7 @@ func (s *AddChapter) processPanel(panelDir string, pageId int64, tracker *upload
 		panelNumbers = append(panelNumbers, panelNum)
 	}
 
-	uploaded := s.storage.UploadMany(s.env.Buckets.PageBucket, osFiles)
+	uploaded := s.storage.UploadMany(s.env.Buckets.PanelBucket, osFiles)
 
 	for _, f := range uploaded {
 		if f.Err != nil {

@@ -1,8 +1,13 @@
 package book
 
 import (
-	"errors"
 	"fmt"
+	"mime/multipart"
+	"path/filepath"
+	"strings"
+
+	book2 "github.com/Pr3c10us/absolutego/internals/domains/book"
+
 	"github.com/Pr3c10us/absolutego/internals/services/book"
 	"github.com/Pr3c10us/absolutego/internals/services/book/commands"
 	"github.com/Pr3c10us/absolutego/packages/appError"
@@ -11,9 +16,6 @@ import (
 	"github.com/Pr3c10us/absolutego/packages/validator"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"mime/multipart"
-	"strconv"
-	"strings"
 )
 
 type Handler struct {
@@ -28,63 +30,172 @@ func NewBookHandler(service book.Services, environmentVariables *configs.Environ
 	}
 }
 
-func (handler *Handler) AddChapter(context *gin.Context) {
-	var params struct {
-		Book    *multipart.FileHeader `form:"book" binding:"required"`
-		Chapter string                `form:"chapter" binding:"required,min=1"`
-		BookId  string                `form:"bookId" binding:"required,min=1"`
+func (h *Handler) AddBook(c *gin.Context) {
+	var req struct {
+		Title string `form:"title" binding:"required,min=1,max=255"`
 	}
-
-	if err := context.Bind(&params); err != nil {
-		err = validator.ValidateRequest(err)
-		_ = context.Error(err)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		_ = c.Error(validator.ValidateRequest(err))
 		return
 	}
 
-	chapter, err := strconv.Atoi(params.Chapter)
-	if err != nil {
-		_ = context.Error(err)
+	if err := h.service.AddBook.Handle(req.Title); err != nil {
+		_ = c.Error(err)
 		return
 	}
 
-	bookId, err := strconv.ParseInt(params.BookId, 10, 64)
-	if err != nil {
-		_ = context.Error(err)
+	response.NewSuccessResponse("book created", nil, nil).Send(c)
+}
+
+func (h *Handler) GetBooks(c *gin.Context) {
+	var req struct {
+		Title string `form:"title" binding:"omitempty,min=1,max=255"`
+	}
+	if err := c.ShouldBindQuery(&req); err != nil {
+		_ = c.Error(validator.ValidateRequest(err))
+		return
+	}
+	var books []book2.Book
+	var err error
+	if books, err = h.service.GetBooks.Handle(req.Title); err != nil {
+		_ = c.Error(err)
 		return
 	}
 
-	var rootPath = configs.GetRootPath()
+	response.NewSuccessResponse("", gin.H{"books": books}, nil).Send(c)
+}
 
-	destination, err := generateFileName(params.Book.Filename)
-	if err != nil {
-		_ = context.Error(err)
+func (h *Handler) DeleteBook(c *gin.Context) {
+	var uri struct {
+		Id int64 `uri:"id" binding:"required,gt=0"`
+	}
+	if err := c.ShouldBindUri(&uri); err != nil {
+		_ = c.Error(validator.ValidateRequest(err))
 		return
 	}
 
-	destination = rootPath + "/upload/" + destination
-
-	err = context.SaveUploadedFile(params.Book, destination)
-	if err != nil {
-		_ = context.Error(err)
+	if err := h.service.DeleteBook.Handle(uri.Id); err != nil {
+		_ = c.Error(err)
 		return
 	}
 
-	err = handler.service.Commands.AddChapter.Handle(commands.Parameter{
-		File: destination, Chapter: chapter, BookId: bookId,
+	response.NewSuccessResponse("book deleted", nil, nil).Send(c)
+}
+
+func (h *Handler) AddChapter(c *gin.Context) {
+	var req struct {
+		Book    *multipart.FileHeader `form:"book"    binding:"required"`
+		Chapter int                   `form:"chapter" binding:"required,gt=0"`
+		BookID  int64                 `form:"bookId"  binding:"required,gt=0"`
+	}
+	if err := c.ShouldBind(&req); err != nil {
+		_ = c.Error(validator.ValidateRequest(err))
+		return
+	}
+
+	if err := validateUploadedFile(req.Book); err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	rootPath := configs.GetRootPath()
+	dest := filepath.Join(rootPath, "uploads", generateFileName(req.Book.Filename))
+
+	if err := c.SaveUploadedFile(req.Book, dest); err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	err := h.service.Commands.AddChapter.Handle(commands.Parameter{
+		File:    dest,
+		Chapter: req.Chapter,
+		BookId:  req.BookID,
 	})
 	if err != nil {
 		fmt.Println(err)
-		_ = context.Error(err)
+		_ = c.Error(err)
 		return
 	}
 
-	response.NewSuccessResponse("Books added", nil, nil).Send(context)
+	response.NewSuccessResponse("chapter added", nil, nil).Send(c)
 }
 
-func generateFileName(fileName string) (string, error) {
-	fileNameParts := strings.Split(fileName, ".")
-	if len(fileNameParts) < 2 {
-		return "", appError.BadRequest(errors.New("invalid file"))
+func (h *Handler) GetChapters(c *gin.Context) {
+	var req struct {
+		Number int   `form:"number" binding:"omitempty,gt=0"`
+		BookID int64 `form:"bookId"  binding:"required,gt=0"`
 	}
-	return uuid.NewString() + "." + fileNameParts[len(fileNameParts)-1], nil
+	if err := c.ShouldBindQuery(&req); err != nil {
+		_ = c.Error(validator.ValidateRequest(err))
+		return
+	}
+	fmt.Println(req)
+
+	var chapters []book2.Chapter
+	var err error
+	if chapters, err = h.service.GetChapters.Handle(req.BookID, req.Number); err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	response.NewSuccessResponse("", gin.H{"chapters": chapters}, nil).Send(c)
+}
+
+func (h *Handler) DeleteChapter(c *gin.Context) {
+	var uri struct {
+		ID int64 `uri:"id" binding:"required,gt=0"`
+	}
+	if err := c.ShouldBindUri(&uri); err != nil {
+		_ = c.Error(validator.ValidateRequest(err))
+		return
+	}
+
+	if err := h.service.DeleteChapter.Handle(uri.ID); err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	response.NewSuccessResponse("chapter deleted", nil, nil).Send(c)
+}
+
+var allowedExtensions = map[string]struct{}{
+	".pdf": {},
+	".cbr": {},
+	".cbz": {},
+	".cb7": {},
+}
+
+const maxFileSize = 5000 << 20
+
+func validateUploadedFile(file *multipart.FileHeader) error {
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	if _, ok := allowedExtensions[ext]; !ok {
+		return appError.BadRequest(fmt.Errorf(
+			"unsupported file type '%s'; allowed: %s",
+			ext, allowedExtensionsList(),
+		))
+	}
+	if file.Size > maxFileSize {
+		return appError.BadRequest(fmt.Errorf(
+			"file size %d bytes exceeds the %d byte limit",
+			file.Size, maxFileSize,
+		))
+	}
+	return nil
+}
+
+func allowedExtensionsList() string {
+	exts := make([]string, 0, len(allowedExtensions))
+	for k := range allowedExtensions {
+		exts = append(exts, k)
+	}
+	return strings.Join(exts, ", ")
+}
+
+func generateFileName(original string) string {
+	ext := filepath.Ext(original)
+	if ext == "" {
+		ext = ".bin"
+	}
+	return uuid.NewString() + ext
 }

@@ -2,16 +2,16 @@ package queries
 
 import "github.com/Pr3c10us/absolutego/internals/domains/book"
 
-type GetBooks struct {
+type GetChapters struct {
 	bookImplementation book.Interface
 }
 
-func (service *GetBooks) Handle(title string) ([]book.Book, error) {
-	return service.bookImplementation.GetBooks(title)
+func (service *GetChapters) Handle(bookId int64, number int) ([]book.Chapter, error) {
+	return service.bookImplementation.GetChapters(bookId, number)
 }
 
-func NewGetBooks(bookImplementation book.Interface) *GetBooks {
-	return &GetBooks{
+func NewGetChapters(bookImplementation book.Interface) *GetChapters {
+	return &GetChapters{
 		bookImplementation,
 	}
 }
