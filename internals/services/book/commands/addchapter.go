@@ -2,6 +2,7 @@ package commands
 
 import (
 	"errors"
+	"github.com/Pr3c10us/absolutego/internals/domains/ai"
 	"github.com/Pr3c10us/absolutego/internals/domains/book"
 	"github.com/Pr3c10us/absolutego/internals/domains/storage"
 	"github.com/Pr3c10us/absolutego/packages/configs"
@@ -15,6 +16,7 @@ import (
 type AddBook struct {
 	bookImplementation    book.Interface
 	storageImplementation storage.Interface
+	aiImplementation      ai.Interface
 	environmentVariables  *configs.EnvironmentVariables
 }
 
@@ -113,8 +115,8 @@ func (service *AddBook) Handle(parameter Parameter) error {
 	return nil
 }
 
-func NewAddBook(bookImplementation book.Interface, storageImplementation storage.Interface, environmentVariables *configs.EnvironmentVariables) *AddBook {
+func NewAddBook(bookImplementation book.Interface, storageImplementation storage.Interface, aiImplementation ai.Interface, environmentVariables *configs.EnvironmentVariables) *AddBook {
 	return &AddBook{
-		bookImplementation, storageImplementation, environmentVariables,
+		bookImplementation, storageImplementation, aiImplementation, environmentVariables,
 	}
 }
