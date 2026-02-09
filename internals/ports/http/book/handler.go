@@ -129,7 +129,6 @@ func (h *Handler) GetChapters(c *gin.Context) {
 		_ = c.Error(validator.ValidateRequest(err))
 		return
 	}
-	fmt.Println(req)
 
 	var chapters []book2.Chapter
 	var err error
@@ -143,19 +142,57 @@ func (h *Handler) GetChapters(c *gin.Context) {
 
 func (h *Handler) DeleteChapter(c *gin.Context) {
 	var uri struct {
-		ID int64 `uri:"id" binding:"required,gt=0"`
+		Id int64 `uri:"id" binding:"required,gt=0"`
 	}
 	if err := c.ShouldBindUri(&uri); err != nil {
 		_ = c.Error(validator.ValidateRequest(err))
 		return
 	}
 
-	if err := h.service.DeleteChapter.Handle(uri.ID); err != nil {
+	if err := h.service.DeleteChapter.Handle(uri.Id); err != nil {
 		_ = c.Error(err)
 		return
 	}
 
 	response.NewSuccessResponse("chapter deleted", nil, nil).Send(c)
+}
+
+func (h *Handler) GetPages(c *gin.Context) {
+	var req struct {
+		ChapterId int64 `form:"chapterId"  binding:"required,gt=0"`
+	}
+	if err := c.ShouldBindQuery(&req); err != nil {
+		_ = c.Error(validator.ValidateRequest(err))
+		return
+	}
+
+	var pages []book2.Page
+	var err error
+	if pages, err = h.service.GetPages.Handle(req.ChapterId); err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	response.NewSuccessResponse("", gin.H{"pages": pages}, nil).Send(c)
+}
+
+func (h *Handler) GetPanels(c *gin.Context) {
+	var req struct {
+		PageId int64 `form:"pageId"  binding:"required,gt=0"`
+	}
+	if err := c.ShouldBindQuery(&req); err != nil {
+		_ = c.Error(validator.ValidateRequest(err))
+		return
+	}
+
+	var panels []book2.Panel
+	var err error
+	if panels, err = h.service.GetPanels.Handle(req.PageId); err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	response.NewSuccessResponse("", gin.H{"panels": panels}, nil).Send(c)
 }
 
 var allowedExtensions = map[string]struct{}{

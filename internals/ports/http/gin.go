@@ -54,9 +54,13 @@ func (server *GinServer) bookRoutes() {
 		bookRoute.GET("", handler.GetBooks)
 		bookRoute.DELETE("/:id", handler.DeleteBook)
 
+		bookRoute.GET("/page", handler.GetPages)
+		bookRoute.GET("/panel", handler.GetPanels)
+
 		bookRoute.POST("/chapter", handler.AddChapter)
 		bookRoute.GET("/chapter", handler.GetChapters)
 		bookRoute.DELETE("/chapter/:id", handler.DeleteChapter)
+
 	}
 }
 

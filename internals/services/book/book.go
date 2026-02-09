@@ -24,6 +24,8 @@ type Commands struct {
 type Queries struct {
 	GetBooks    *queries.GetBooks
 	GetChapters *queries.GetChapters
+	GetPages    *queries.GetPages
+	GetPanels   *queries.GetPanels
 }
 
 func NewBookServices(bookImplementation book.Interface, storageImplementation storage.Interface, aiImplementation ai.Interface, environmentVariables *configs.EnvironmentVariables) Services {
@@ -37,6 +39,8 @@ func NewBookServices(bookImplementation book.Interface, storageImplementation st
 		Queries: Queries{
 			GetBooks:    queries.NewGetBooks(bookImplementation),
 			GetChapters: queries.NewGetChapters(bookImplementation),
+			GetPages:    queries.NewGetPages(bookImplementation),
+			GetPanels:   queries.NewGetPanels(bookImplementation),
 		},
 	}
 }
