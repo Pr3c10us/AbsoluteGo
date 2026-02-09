@@ -49,7 +49,7 @@ func (server *GinServer) bookRoutes() {
 	handler := book.NewBookHandler(server.Services.BookServices, server.Environment)
 	bookRoute := server.Engine.Group("/api/v1/book")
 	{
-		bookRoute.POST("", handler.AddBook)
+		bookRoute.POST("", handler.AddChapter)
 	}
 }
 

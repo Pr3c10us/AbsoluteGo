@@ -12,3 +12,8 @@ type UploadResult struct {
 	URL       string
 	Err       error
 }
+
+type DeleteResult struct {
+	URL string
+	Err error
+}

@@ -5,7 +5,8 @@ import (
 )
 
 type Interface interface {
-	UploadFile(bucketName, objectKey string, file *os.File) (string, error)
-	UploadMany(bucketName string, files []UploadInput) []UploadResult
-	DeleteFile(bucketName, objectKey string) error
+	UploadFile(bucketName string, file *os.File) (string, error)
+	UploadMany(bucketName string, files []*os.File) []UploadResult
+	DeleteFile(fileURL string) error
+	DeleteMany(urls []string) []DeleteResult
 }

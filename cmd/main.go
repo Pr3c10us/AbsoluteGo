@@ -15,9 +15,11 @@ var (
 func main() {
 	newS3Client := utils.NewS3Client(environmentVariables)
 	newSQLClient := utils.NewSQLClient(environmentVariables)
+	newGoogleGenAIClient := utils.NewGoogleGenAIClient(environmentVariables)
 
 	adapterDependencies := adapters.AdapterDependencies{
 		EnvironmentVariables: environmentVariables,
+		GoogleGenAIClient:    newGoogleGenAIClient,
 		S3Client:             newS3Client,
 		DB:                   newSQLClient,
 	}

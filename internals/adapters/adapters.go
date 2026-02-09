@@ -23,7 +23,7 @@ type AdapterDependencies struct {
 
 type Adapters struct {
 	EnvironmentVariables *configs.EnvironmentVariables
-	GoogleAI             ai.Interface
+	AiImplementation     ai.Interface
 	StorageRepository    storage.Interface
 	BookImplementation   book.Interface
 }
@@ -31,7 +31,7 @@ type Adapters struct {
 func NewAdapters(dependencies AdapterDependencies) *Adapters {
 	return &Adapters{
 		EnvironmentVariables: dependencies.EnvironmentVariables,
-		GoogleAI:             ai2.NewGoogleAI(dependencies.GoogleGenAIClient, dependencies.EnvironmentVariables.Gemini),
+		AiImplementation:     ai2.NewGoogleAI(dependencies.GoogleGenAIClient, dependencies.EnvironmentVariables.Gemini),
 		StorageRepository:    storage2.NewMinioStorageRepository(dependencies.S3Client),
 		BookImplementation:   book2.NewBookImplementation(dependencies.DB),
 	}

@@ -62,7 +62,7 @@ func SortImages(tempDir string, outputDir string) ([]string, error) {
 	for _, imgPath := range comicImages {
 		globalIndex++
 		ext := filepath.Ext(imgPath)
-		newName := fmt.Sprintf("%05d%s", globalIndex, ext)
+		newName := fmt.Sprintf("%d%s", globalIndex, ext)
 		destPath := filepath.Join(outputDir, newName)
 
 		err = os.Rename(imgPath, destPath)

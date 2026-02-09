@@ -49,25 +49,31 @@ func (g *GoogleAI) UploadFiles(files []ai.File) ([]ai.UploadedFile, error) {
 	}
 
 	type result struct {
-		file ai.UploadedFile
-		err  error
+		index int
+		file  ai.UploadedFile
+		err   error
 	}
 
 	ch := make(chan result, len(files))
-	for _, f := range files {
-		go func(f ai.File) {
+	for i, f := range files {
+		go func(i int, f ai.File) {
 			uf, err := g.uploadFile(ctx, f)
-			ch <- result{file: uf, err: err}
-		}(f)
+			ch <- result{index: i, file: uf, err: err}
+		}(i, f)
 	}
 
-	uploaded := make([]ai.UploadedFile, 0, len(files))
+	results := make([]result, len(files))
 	for range files {
 		r := <-ch
 		if r.err != nil {
 			return nil, r.err
 		}
-		uploaded = append(uploaded, r.file)
+		results[r.index] = r
+	}
+
+	uploaded := make([]ai.UploadedFile, len(files))
+	for i, r := range results {
+		uploaded[i] = r.file
 	}
 	return uploaded, nil
 }

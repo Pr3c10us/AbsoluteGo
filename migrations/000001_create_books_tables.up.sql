@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS pages
     chapter_id  INTEGER NOT NULL,
     url         TEXT,
     llm_url     TEXT,
+    mime        TEXT,
     page_number INTEGER NOT NULL,
     updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (chapter_id) REFERENCES chapters (id) ON DELETE CASCADE
@@ -38,7 +39,6 @@ CREATE TABLE IF NOT EXISTS panels
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     page_id      INTEGER NOT NULL,
     url          TEXT,
-    llm_url      TEXT,
     panel_number INTEGER NOT NULL,
     updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (page_id) REFERENCES pages (id) ON DELETE CASCADE

@@ -2,6 +2,7 @@ package book
 
 import (
 	"errors"
+	"fmt"
 	"github.com/Pr3c10us/absolutego/internals/services/book"
 	"github.com/Pr3c10us/absolutego/internals/services/book/commands"
 	"github.com/Pr3c10us/absolutego/packages/appError"
@@ -27,10 +28,11 @@ func NewBookHandler(service book.Services, environmentVariables *configs.Environ
 	}
 }
 
-func (handler *Handler) AddBook(context *gin.Context) {
+func (handler *Handler) AddChapter(context *gin.Context) {
 	var params struct {
 		Book    *multipart.FileHeader `form:"book" binding:"required"`
 		Chapter string                `form:"chapter" binding:"required,min=1"`
+		BookId  string                `form:"bookId" binding:"required,min=1"`
 	}
 
 	if err := context.Bind(&params); err != nil {
@@ -40,6 +42,12 @@ func (handler *Handler) AddBook(context *gin.Context) {
 	}
 
 	chapter, err := strconv.Atoi(params.Chapter)
+	if err != nil {
+		_ = context.Error(err)
+		return
+	}
+
+	bookId, err := strconv.ParseInt(params.BookId, 10, 64)
 	if err != nil {
 		_ = context.Error(err)
 		return
@@ -61,10 +69,11 @@ func (handler *Handler) AddBook(context *gin.Context) {
 		return
 	}
 
-	err = handler.service.Commands.AddBook.Handle(commands.Parameter{
-		File: destination, Chapter: chapter,
+	err = handler.service.Commands.AddChapter.Handle(commands.Parameter{
+		File: destination, Chapter: chapter, BookId: bookId,
 	})
 	if err != nil {
+		fmt.Println(err)
 		_ = context.Error(err)
 		return
 	}
