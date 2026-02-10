@@ -207,7 +207,7 @@ func (s *AddChapter) processFile(outputDir, filePath string) error {
 		return err
 	}
 
-	const maxWorkers = 100
+	const maxWorkers = 5
 
 	err = runWorkerPool(images, maxWorkers, func(path string) error {
 		defer os.Remove(path)
@@ -368,7 +368,7 @@ func (s *AddChapter) processPages(pagePaths []string, chapterId int64, tracker *
 }
 
 func (s *AddChapter) processPanels(panelDir []string, pages []book.Page, tracker *uploadTracker) ([]book.Panel, error) {
-	const maxWorkers = 100
+	const maxWorkers = 5
 
 	pageMap := make(map[int]int64, len(pages))
 	for _, page := range pages {

@@ -1,6 +1,3 @@
-# Air configuration for hot-reload
-# Documentation: https://github.com/cosmtrek/air
-
 root = "."
 tmp_dir = "tmp"
 
@@ -14,7 +11,7 @@ tmp_dir = "tmp"
   # Watch these file extensions
   include_ext = ["go", "env"]
   # Exclude directories
-  exclude_dir = ["vendor", "books", "log", "logs", "tmp", "node_modules", "bin", "templates", "uploads", "assets"]
+  exclude_dir = ["vendor", "ui", "books", "log", "logs", "tmp", "node_modules", "bin", "templates", "uploads", "assets"]
   # Exclude files
   exclude_file = []
   # Exclude regex patterns

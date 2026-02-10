@@ -17,7 +17,6 @@ import (
 	"github.com/fogleman/gg"
 )
 
-
 type BoundingBox struct {
 	MinRow, MinCol, MaxRow, MaxCol int
 }
@@ -35,7 +34,6 @@ type floodFillPanel struct {
 	MinX, MaxX, MinY, MaxY int
 	PixelCount             int
 }
-
 
 func isContainedIn(inner, outer OutputPanel) bool {
 	return inner.Left >= outer.Left &&
@@ -60,8 +58,6 @@ func removeNestedPanels(panels []OutputPanel) []OutputPanel {
 	}
 	return result
 }
-
-
 
 func imageToGray(img image.Image) []uint8 {
 	b := img.Bounds()
@@ -88,7 +84,6 @@ func imageToGrayFloat(img image.Image) ([]float64, int, int) {
 	}
 	return buf, w, h
 }
-
 
 func detectGutterColor(buf []uint8, w, h int) int {
 	hist := make([]int, 256)
@@ -186,7 +181,6 @@ func detectPanelsFloodFill(grayBuf []uint8, w, h int) []OutputPanel {
 	}
 	return out
 }
-
 
 func gaussianBlur(img []float64, w, h int, sigma float64) []float64 {
 	size := int(math.Ceil(sigma*6)) | 1
@@ -607,8 +601,34 @@ func flattenPanels(nested []interface{}) []BoundingBox {
 func detectPanelsCanny(img image.Image, w, h int) []OutputPanel {
 	gray, _, _ := imageToGrayFloat(img)
 	edges := cannyEdgeDetection(gray, w, h)
-	dilatePaneld := dilatePanel(edges, w, h, 2)
-	filled := binaryFillHoles(dilatePaneld, w, h)
+
+	// --- FIX START ---
+	// Reduced kernel size from 21 to 9.
+	// 21 was too large and merged distinct panels together (filling the gutters).
+	// 9 is safer: it connects broken lines without jumping across panel gaps.
+	const kSize = 9
+
+	// 1. Close Horizontal gaps
+	closedH := morphologicalClose(edges, w, h, kSize, 1)
+
+	// 2. Close Vertical gaps
+	closedV := morphologicalClose(edges, w, h, 1, kSize)
+
+	// 3. Combine
+	combined := make([]uint8, w*h)
+	for i := range combined {
+		if closedH[i] > 128 || closedV[i] > 128 || edges[i] > 128 {
+			combined[i] = 255
+		} else {
+			combined[i] = 0
+		}
+	}
+
+	// 4. Minor smoothing (keep this small)
+	finalEdges := dilateDirectional(combined, w, h, 3, 3)
+	// --- FIX END ---
+
+	filled := binaryFillHoles(finalEdges, w, h)
 	regions := labelComponentsWithBoxes(filled, w, h)
 	merged := mergeOverlapping(regions)
 
@@ -616,9 +636,21 @@ func detectPanelsCanny(img image.Image, w, h int) []OutputPanel {
 	var filtered []BoundingBox
 	for _, b := range merged {
 		area := (b.MaxRow - b.MinRow) * (b.MaxCol - b.MinCol)
-		if area >= imageArea/100 {
-			filtered = append(filtered, b)
+
+		// Filter noise (too small)
+		if area < imageArea/150 {
+			continue
 		}
+
+		// --- NEW SAFETY CHECK ---
+		// If a single detected panel covers more than 90% of the image,
+		// it is likely a "merge error" where gutters were bridged.
+		// We discard it so we don't lose the Flood Fill results.
+		if area > int(float64(imageArea)*0.90) {
+			continue
+		}
+
+		filtered = append(filtered, b)
 	}
 
 	clustered := clusterPanels(filtered, "row", 0)
@@ -630,7 +662,6 @@ func detectPanelsCanny(img image.Image, w, h int) []OutputPanel {
 	}
 	return out
 }
-
 
 func panelsOverlap(a, b OutputPanel) bool {
 	return a.Left < b.Left+b.Width &&
@@ -696,7 +727,6 @@ func mergeTouchingPanels(panels []OutputPanel) []OutputPanel {
 	return result
 }
 
-
 func isColorful(img image.Image) bool {
 	small := imaging.Fit(img, 100, 100, imaging.Lanczos)
 	b := small.Bounds()
@@ -729,7 +759,6 @@ func isColorful(img image.Image) bool {
 	}
 	return float64(colorfulPixels)/float64(pixelCount) > 0.1
 }
-
 
 func drawRect(img *image.RGBA, p OutputPanel, c color.RGBA, thickness int) {
 	for t := 0; t < thickness; t++ {
@@ -847,7 +876,6 @@ func drawOverlay(img *image.RGBA, panels []OutputPanel) {
 		}
 	}
 }
-
 
 func DetectAndExtractPanels(imagePath string) DetectResult {
 	fullPath, _ := filepath.Abs(imagePath)
@@ -972,4 +1000,82 @@ func DetectAndExtractPanels(imagePath string) DetectResult {
 	}
 
 	return DetectResult{Panels: len(outputPanels), Success: true}
+}
+
+// dilateDirectional performs dilation with a rectangular kernel (kW x kH)
+func dilateDirectional(src []uint8, w, h, kW, kH int) []uint8 {
+	dst := make([]uint8, len(src))
+	// Radius
+	rW := kW / 2
+	rH := kH / 2
+
+	for y := 0; y < h; y++ {
+		yOff := y * w
+		for x := 0; x < w; x++ {
+			maxVal := src[yOff+x]
+
+			// Check neighbors within the rectangle
+			for ky := -rH; ky <= rH; ky++ {
+				py := y + ky
+				if py < 0 || py >= h {
+					continue
+				}
+				pOff := py * w
+				for kx := -rW; kx <= rW; kx++ {
+					px := x + kx
+					if px < 0 || px >= w {
+						continue
+					}
+					if src[pOff+px] > maxVal {
+						maxVal = src[pOff+px]
+					}
+				}
+			}
+			dst[yOff+x] = maxVal
+		}
+	}
+	return dst
+}
+
+// erodeDirectional performs erosion with a rectangular kernel (kW x kH)
+func erodeDirectional(src []uint8, w, h, kW, kH int) []uint8 {
+	dst := make([]uint8, len(src))
+	rW := kW / 2
+	rH := kH / 2
+
+	for y := 0; y < h; y++ {
+		yOff := y * w
+		for x := 0; x < w; x++ {
+			minVal := uint8(255)
+
+			// To erode, we find the minimum value in the kernel
+			for ky := -rH; ky <= rH; ky++ {
+				py := y + ky
+				if py < 0 || py >= h {
+					// Out of bounds is treated as "white" (255) for erosion logic
+					// so it doesn't shrink edges near image borders artificially
+					continue
+				}
+				pOff := py * w
+				for kx := -rW; kx <= rW; kx++ {
+					px := x + kx
+					if px < 0 || px >= w {
+						continue
+					}
+					if src[pOff+px] < minVal {
+						minVal = src[pOff+px]
+					}
+				}
+			}
+			dst[yOff+x] = minVal
+		}
+	}
+	return dst
+}
+
+// morphologicalClose bridges gaps by Dilating then Eroding
+func morphologicalClose(src []uint8, w, h, kW, kH int) []uint8 {
+	dilated := dilateDirectional(src, w, h, kW, kH)
+	eroded := erodeDirectional(dilated, w, h, kW, kH)
+	return eroded
 }

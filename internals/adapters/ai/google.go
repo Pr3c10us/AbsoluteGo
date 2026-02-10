@@ -43,6 +43,13 @@ func NewGoogleAI(client *genai.Client, config *configs.GeminiConfig) ai.Interfac
 }
 
 func (g *GoogleAI) UploadFiles(files []ai.File) ([]ai.UploadedFile, error) {
+	a := make([]ai.UploadedFile, len(files))
+	for i, _ := range files {
+		a[i].URI = "aa"
+		a[i].MIMEType = "aa"
+	}
+	fmt.Println("do not forget to remove me")
+	return a, nil
 	ctx := context.Background()
 	if len(files) == 0 {
 		return nil, nil
