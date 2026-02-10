@@ -63,13 +63,9 @@ CREATE TABLE IF NOT EXISTS script_splits
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     script_id  INTEGER NOT NULL,
     content    TEXT,
-    chapter_id INTEGER,
-    page_id    INTEGER,
     panel_id   INTEGER,
     effect     TEXT,
     FOREIGN KEY (script_id) REFERENCES scripts (id) ON DELETE CASCADE,
-    FOREIGN KEY (chapter_id) REFERENCES chapters (id) ON DELETE CASCADE,
-    FOREIGN KEY (page_id) REFERENCES pages (id) ON DELETE CASCADE,
     FOREIGN KEY (panel_id) REFERENCES panels (id) ON DELETE CASCADE
 );
 

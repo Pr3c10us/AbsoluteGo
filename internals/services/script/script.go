@@ -1,9 +1,11 @@
 package script
 
 import (
+	"github.com/Pr3c10us/absolutego/internals/domains/ai"
 	"github.com/Pr3c10us/absolutego/internals/domains/script"
 	"github.com/Pr3c10us/absolutego/internals/services/script/commands"
 	"github.com/Pr3c10us/absolutego/internals/services/script/queries"
+	"github.com/Pr3c10us/absolutego/packages/configs"
 )
 
 type Services struct {
@@ -20,7 +22,7 @@ type Queries struct {
 	GetSplits  *queries.GetSplits
 }
 
-func NewScriptServices(scriptImplementation script.Interface) Services {
+func NewScriptServices(scriptImplementation script.Interface, aiImplementation ai.Interface, environmentVariables *configs.EnvironmentVariables) Services {
 	return Services{
 		Commands: Commands{
 			DeleteScript: commands.NewDeleteScript(scriptImplementation),

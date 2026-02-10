@@ -106,12 +106,9 @@ const NAV_CARDS = [
 
 export default function HomePage() {
   return (
-    <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-6 max-sm:px-4">
+    <div className="mx-auto flex max-w-5xl flex-col px-6 max-sm:px-4">
       {/* ── Hero ── */}
       <header className="flex flex-col items-center pt-32 pb-16 text-center max-sm:pt-20 max-sm:pb-10">
-        <span className="mb-6 inline-block rounded-[4px_6px_5px_3px] bg-foreground px-3 py-1 text-[10px] font-bold uppercase tracking-[0.35em] text-background">
-          MANAGEMENT SUITE
-        </span>
         <h1 className="text-[clamp(4rem,14vw,8rem)] font-black leading-[0.85] tracking-tighter">
           ABSOLUTE
         </h1>

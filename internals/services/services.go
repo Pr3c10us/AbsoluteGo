@@ -3,14 +3,17 @@ package services
 import (
 	"github.com/Pr3c10us/absolutego/internals/adapters"
 	"github.com/Pr3c10us/absolutego/internals/services/book"
+	"github.com/Pr3c10us/absolutego/internals/services/script"
 )
 
 type Services struct {
-	BookServices book.Services
+	BookServices   book.Services
+	ScriptServices script.Services
 }
 
 func NewServices(adapters *adapters.Adapters) *Services {
 	return &Services{
-		BookServices: book.NewBookServices(adapters.BookImplementation, adapters.StorageRepository, adapters.AiImplementation, adapters.EnvironmentVariables),
+		BookServices:   book.NewBookServices(adapters.BookImplementation, adapters.StorageRepository, adapters.AiImplementation, adapters.EnvironmentVariables),
+		ScriptServices: script.NewScriptServices(adapters.ScriptImplementation, adapters.AiImplementation, adapters.EnvironmentVariables),
 	}
 }

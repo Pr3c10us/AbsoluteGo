@@ -9,11 +9,9 @@ type Script struct {
 }
 
 type Split struct {
-	Id        int64   `json:"id"`
-	ScriptId  int64   `json:"scriptId"`
-	Content   *string `json:"content"`
-	ChapterId *int64  `json:"chapterId"`
-	PageId    *int64  `json:"pageId"`
-	PanelId   *int64  `json:"panelId"`
-	Effect    *string `json:"effect"`
+	Id       int64   `json:"id"`
+	ScriptId int64   `json:"scriptId"`
+	Content  *string `json:"content"`
+	PanelId  *int64  `json:"panelId"`
+	Effect   *string `json:"effect"`
 }

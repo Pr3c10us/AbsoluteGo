@@ -68,11 +68,14 @@ func (i *implementation) DeleteScript(id int64) error {
 	return assertRowAffected(res)
 }
 
-func (i *implementation) GetScripts(bookId int64) ([]script.Script, error) {
+func (i *implementation) GetScripts(bookId int64, name string) ([]script.Script, error) {
 	q := sq.Select("id", "name", "content", "book_id", "chapters").
 		From("scripts")
 	if bookId > 0 {
 		q = q.Where(sq.Eq{"book_id": bookId})
+	}
+	if name != "" {
+		q = q.Where(sq.Like{"name": fmt.Sprintf("%%%s%%", name)})
 	}
 
 	rows, err := q.RunWith(i.db).Query()

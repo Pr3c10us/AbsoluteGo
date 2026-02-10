@@ -5,6 +5,7 @@ import (
 
 	"github.com/Pr3c10us/absolutego/internals/adapters"
 	"github.com/Pr3c10us/absolutego/internals/ports/http/book"
+	"github.com/Pr3c10us/absolutego/internals/ports/http/script"
 	"github.com/Pr3c10us/absolutego/internals/services"
 	"github.com/Pr3c10us/absolutego/packages/configs"
 	"github.com/Pr3c10us/absolutego/packages/middlewares"
@@ -36,6 +37,7 @@ func NewGinServer(services *services.Services, adapters *adapters.Adapters, envi
 
 	ginServer.health()
 	ginServer.bookRoutes()
+	ginServer.scriptRoutes()
 
 	return ginServer
 }
@@ -61,6 +63,17 @@ func (server *GinServer) bookRoutes() {
 		bookRoute.GET("/chapter", handler.GetChapters)
 		bookRoute.DELETE("/chapter/:id", handler.DeleteChapter)
 
+	}
+}
+
+func (server *GinServer) scriptRoutes() {
+	handler := script.NewScriptHandler(server.Services.ScriptServices)
+	scriptRoute := server.Engine.Group("/api/v1/script")
+	{
+		scriptRoute.GET("", handler.GetScripts)
+		scriptRoute.DELETE("/:id", handler.DeleteScript)
+
+		scriptRoute.GET("/split", handler.GetSplits)
 	}
 }
 
