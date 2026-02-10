@@ -11,7 +11,7 @@ type Interface interface {
 	UpdateChapter(id int64, number int, blurURL string) error
 	DeleteChapters(bookId int64) error
 	DeleteChapter(id int64) error
-	GetChapters(bookId int64, number int) ([]Chapter, error)
+	GetChapters(bookId int64, number []int) ([]Chapter, error)
 	GetChapter(chapterId int64) (*Chapter, error)
 
 	CreatePage(page *Page) (int64, error)
@@ -19,8 +19,8 @@ type Interface interface {
 	UpdatePage(id int64, page *Page) error
 	DeletePages(chapterId int64) error
 	DeletePage(id int64) error
-	GetPages(chapterId int64) ([]Page, error)
-	GetPage(pageId int64) (*Page, error)
+	GetPages(chapterIds []int64, withPanels bool) ([]Page, error)
+	GetPage(pageId int64, withPanels bool) (*Page, error)
 
 	CreatePanel(panel *Panel) (int64, error)
 	CreateManyPanel(panel []Panel) ([]Panel, error)

@@ -6,7 +6,7 @@ type GetChapters struct {
 	bookImplementation book.Interface
 }
 
-func (service *GetChapters) Handle(bookId int64, number int) ([]book.Chapter, error) {
+func (service *GetChapters) Handle(bookId int64, number []int) ([]book.Chapter, error) {
 	return service.bookImplementation.GetChapters(bookId, number)
 }
 

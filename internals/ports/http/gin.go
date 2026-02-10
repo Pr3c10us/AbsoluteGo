@@ -71,6 +71,7 @@ func (server *GinServer) scriptRoutes() {
 	scriptRoute := server.Engine.Group("/api/v1/script")
 	{
 		scriptRoute.GET("", handler.GetScripts)
+		scriptRoute.POST("", handler.GenerateScripts)
 		scriptRoute.DELETE("/:id", handler.DeleteScript)
 
 		scriptRoute.GET("/split", handler.GetSplits)

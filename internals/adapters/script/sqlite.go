@@ -3,6 +3,7 @@ package script
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
@@ -68,7 +69,7 @@ func (i *implementation) DeleteScript(id int64) error {
 	return assertRowAffected(res)
 }
 
-func (i *implementation) GetScripts(bookId int64, name string) ([]script.Script, error) {
+func (i *implementation) GetScripts(bookId int64, name string, ids []int64) ([]script.Script, error) {
 	q := sq.Select("id", "name", "content", "book_id", "chapters").
 		From("scripts")
 	if bookId > 0 {
@@ -77,6 +78,9 @@ func (i *implementation) GetScripts(bookId int64, name string) ([]script.Script,
 	if name != "" {
 		q = q.Where(sq.Like{"name": fmt.Sprintf("%%%s%%", name)})
 	}
+	if len(ids) > 0 {
+		q = q.Where(sq.Eq{"id": ids})
+	}
 
 	rows, err := q.RunWith(i.db).Query()
 	if err != nil {
@@ -84,7 +88,7 @@ func (i *implementation) GetScripts(bookId int64, name string) ([]script.Script,
 	}
 	defer rows.Close()
 
-	scripts := []script.Script{}
+	var scripts []script.Script
 	for rows.Next() {
 		var s script.Script
 		var chaptersJSON string
@@ -108,7 +112,7 @@ func (i *implementation) GetScript(id int64) (*script.Script, error) {
 		RunWith(i.db).
 		QueryRow().
 		Scan(&s.Id, &s.Name, &s.Content, &s.BookId, &chaptersJSON)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -211,7 +215,7 @@ func (i *implementation) GetSplits(scriptId int64) ([]script.Split, error) {
 	}
 	defer rows.Close()
 
-	splits := []script.Split{}
+	var splits []script.Split
 	for rows.Next() {
 		var s script.Split
 		if err := rows.Scan(&s.Id, &s.ScriptId, &s.Content, &s.PanelId, &s.Effect); err != nil {
@@ -230,7 +234,7 @@ func (i *implementation) GetSplit(id int64) (*script.Split, error) {
 		RunWith(i.db).
 		QueryRow().
 		Scan(&s.Id, &s.ScriptId, &s.Content, &s.PanelId, &s.Effect)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {

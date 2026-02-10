@@ -93,12 +93,12 @@ func (g *GoogleAI) uploadFile(ctx context.Context, f ai.File) (ai.UploadedFile, 
 		return ai.UploadedFile{}, fmt.Errorf("upload file: %w", err)
 	}
 	if uploaded.URI == "" || uploaded.MIMEType == "" {
-		return ai.UploadedFile{}, errors.New("uploaded file missing URI or MIMEType")
+		return ai.UploadedFile{}, errors.New("uploaded file missing URI or MIME")
 	}
 	return ai.UploadedFile{URI: uploaded.URI, MIMEType: uploaded.MIMEType}, nil
 }
 
-func (g *GoogleAI) GenerateAudioLive(text string, voice ai.Voice) (ai.Response, error) {
+func (g *GoogleAI) GenerateAudioLive(text string, voice ai.Voice) (*ai.Response, error) {
 	ctx := context.Background()
 
 	model := g.config.LiveModel
@@ -119,7 +119,7 @@ func (g *GoogleAI) GenerateAudioLive(text string, voice ai.Voice) (ai.Response, 
 
 	session, err := g.client.Live.Connect(ctx, model, config)
 	if err != nil {
-		return ai.Response{}, fmt.Errorf("live connect: %w", err)
+		return nil, fmt.Errorf("live connect: %w", err)
 	}
 	defer func(session *genai.Session) {
 		err = session.Close()
@@ -134,7 +134,7 @@ func (g *GoogleAI) GenerateAudioLive(text string, voice ai.Voice) (ai.Response, 
 		TurnComplete: genai.Ptr(true),
 	})
 	if err != nil {
-		return ai.Response{}, fmt.Errorf("send client content: %w", err)
+		return nil, fmt.Errorf("send client content: %w", err)
 	}
 
 	var audioChunks [][]byte
@@ -143,7 +143,7 @@ func (g *GoogleAI) GenerateAudioLive(text string, voice ai.Voice) (ai.Response, 
 	for {
 		msg, err := session.Receive()
 		if err != nil {
-			return ai.Response{}, fmt.Errorf("receive: %w", err)
+			return nil, fmt.Errorf("receive: %w", err)
 		}
 
 		if msg.ServerContent != nil && msg.ServerContent.ModelTurn != nil {
@@ -165,7 +165,7 @@ func (g *GoogleAI) GenerateAudioLive(text string, voice ai.Voice) (ai.Response, 
 	}
 
 	if len(audioChunks) == 0 {
-		return ai.Response{}, errors.New("no audio data received from Live API")
+		return nil, errors.New("no audio data received from Live API")
 	}
 
 	totalLen := 0
@@ -190,10 +190,10 @@ func (g *GoogleAI) GenerateAudioLive(text string, voice ai.Voice) (ai.Response, 
 		dollars = inputCost + outputCost
 	}
 
-	return ai.Response{Response: combinedBase64, Dollars: dollars}, nil
+	return &ai.Response{Response: combinedBase64, Dollars: dollars}, nil
 }
 
-func (g *GoogleAI) GenerateText(prompt string, useFastModel bool, uploadedFiles []ai.UploadedFile) (ai.Response, error) {
+func (g *GoogleAI) GenerateText(prompt string, useFastModel bool, uploadedFiles []ai.UploadedFile) (*ai.Response, error) {
 	ctx := context.Background()
 
 	var parts []*genai.Part
@@ -201,10 +201,10 @@ func (g *GoogleAI) GenerateText(prompt string, useFastModel bool, uploadedFiles 
 	for _, uf := range uploadedFiles {
 		active, err := g.waitForFileActive(ctx, uf.URI, 30*time.Second)
 		if err != nil {
-			return ai.Response{}, fmt.Errorf("wait for file active: %w", err)
+			return nil, fmt.Errorf("wait for file active: %w", err)
 		}
 		if !active {
-			return ai.Response{}, errors.New("file failed to become active")
+			return nil, errors.New("file failed to become active")
 		}
 		parts = append(parts, genai.NewPartFromURI(uf.URI, uf.MIMEType))
 	}
@@ -231,16 +231,16 @@ func (g *GoogleAI) GenerateText(prompt string, useFastModel bool, uploadedFiles 
 
 	response, err := g.client.Models.GenerateContent(ctx, model, contents, config)
 	if err != nil {
-		return ai.Response{}, fmt.Errorf("generate content: %w", err)
+		return nil, fmt.Errorf("generate content: %w", err)
 	}
 
 	text := response.Text()
 	if text == "" {
-		return ai.Response{}, errors.New("failed to generate text: empty response")
+		return nil, errors.New("failed to generate text: empty response")
 	}
 
 	dollars := g.calculateCost(model, response, "text")
-	return ai.Response{Response: text, Dollars: dollars}, nil
+	return &ai.Response{Response: text, Dollars: dollars}, nil
 }
 
 func (g *GoogleAI) waitForFileActive(ctx context.Context, fileURI string, maxWait time.Duration) (bool, error) {

@@ -20,10 +20,11 @@ import (
 )
 
 type AddChapter struct {
-	book    book.Interface
-	storage storage.Interface
-	ai      ai.Interface
-	env     *configs.EnvironmentVariables
+	book          book.Interface
+	storage       storage.Interface
+	ai            ai.Interface
+	env           *configs.EnvironmentVariables
+	deleteChapter *DeleteChapter
 }
 
 type Parameter struct {
@@ -32,8 +33,6 @@ type Parameter struct {
 	BookId  int64
 }
 
-// uploadTracker collects all uploaded URLs so they can be rolled back on failure.
-// uploadTracker collects all uploaded URLs so they can be rolled back on failure.
 type uploadTracker struct {
 	mu   sync.Mutex
 	urls []string
@@ -53,48 +52,6 @@ func (t *uploadTracker) All() []string {
 	return dst
 }
 
-// runWorkerPool processes items concurrently with a bounded number of workers.
-// It stops early on the first error encountered.
-func runWorkerPool[T any](items []T, maxWorkers int, fn func(T) error) error {
-	if len(items) == 0 {
-		return nil
-	}
-	if maxWorkers <= 0 {
-		maxWorkers = 1
-	}
-	if maxWorkers > len(items) {
-		maxWorkers = len(items)
-	}
-
-	var (
-		wg       sync.WaitGroup
-		once     sync.Once
-		firstErr error
-		work     = make(chan T, len(items))
-	)
-
-	for _, item := range items {
-		work <- item
-	}
-	close(work)
-
-	for i := 0; i < maxWorkers; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for item := range work {
-				if err := fn(item); err != nil {
-					once.Do(func() { firstErr = err })
-					return
-				}
-			}
-		}()
-	}
-
-	wg.Wait()
-	return firstErr
-}
-
 func (s *AddChapter) Handle(p Parameter) error {
 	defer os.Remove(p.File)
 
@@ -106,9 +63,9 @@ func (s *AddChapter) Handle(p Parameter) error {
 		return appError.BadRequest(errors.New("book does not exist"))
 	}
 
-	chapters, _ := s.book.GetChapters(b.Id, p.Chapter)
+	chapters, _ := s.book.GetChapters(b.Id, []int{p.Chapter})
 	for _, ch := range chapters {
-		if err = s.deleteChapter(ch.Id); err != nil {
+		if err = s.deleteChapter.Handle(ch.Id); err != nil {
 			return err
 		}
 	}
@@ -133,7 +90,6 @@ func (s *AddChapter) Handle(p Parameter) error {
 		return err
 	}
 
-	// Track every uploaded URL for rollback on failure.
 	tracker := &uploadTracker{}
 	rollback := func() { s.storage.DeleteMany(tracker.All()) }
 
@@ -209,7 +165,7 @@ func (s *AddChapter) processFile(outputDir, filePath string) error {
 
 	const maxWorkers = 5
 
-	err = runWorkerPool(images, maxWorkers, func(path string) error {
+	err = utils.RunWorkerPool(images, maxWorkers, func(path string) error {
 		defer os.Remove(path)
 		utils.DetectAndExtractPanels(path)
 		return nil
@@ -232,47 +188,9 @@ func (s *AddChapter) processFile(outputDir, filePath string) error {
 		}
 	}
 
-	return runWorkerPool(jobs, maxWorkers, func(j overlayJob) error {
+	return utils.RunWorkerPool(jobs, maxWorkers, func(j overlayJob) error {
 		return utils.AddPageNumberToOverlay(j.path, j.pageNum)
 	})
-}
-
-func (s *AddChapter) deleteChapter(chapterId int64) error {
-	ch, err := s.book.GetChapter(chapterId)
-	if err != nil || ch == nil {
-		return err
-	}
-
-	pages, err := s.book.GetPages(ch.Id)
-	if err != nil || pages == nil {
-		return err
-	}
-
-	var urls []string
-	for _, page := range pages {
-		urls = append(urls, *page.URL)
-
-		panels, err := s.book.GetPanels(page.Id)
-		if err != nil {
-			return err
-		}
-		for _, panel := range panels {
-			urls = append(urls, *panel.URL)
-		}
-		if err = s.book.DeletePanels(page.Id); err != nil {
-			return err
-		}
-	}
-
-	if err = s.book.DeletePages(ch.Id); err != nil {
-		return err
-	}
-	if err = s.book.DeleteChapter(ch.Id); err != nil {
-		return err
-	}
-
-	s.storage.DeleteMany(urls)
-	return nil
 }
 
 func (s *AddChapter) processPages(pagePaths []string, chapterId int64, tracker *uploadTracker) ([]book.Page, *book.Page, error) {
@@ -380,7 +298,7 @@ func (s *AddChapter) processPanels(panelDir []string, pages []book.Page, tracker
 		allPanels []book.Panel
 	)
 
-	err := runWorkerPool(panelDir, maxWorkers, func(dir string) error {
+	err := utils.RunWorkerPool(panelDir, maxWorkers, func(dir string) error {
 		defer os.RemoveAll(dir)
 
 		dirName := filepath.Base(dir)
@@ -469,5 +387,5 @@ func (s *AddChapter) processPanel(panelDir string, pageId int64, tracker *upload
 }
 
 func NewAddChapter(b book.Interface, st storage.Interface, a ai.Interface, env *configs.EnvironmentVariables) *AddChapter {
-	return &AddChapter{b, st, a, env}
+	return &AddChapter{b, st, a, env, NewDeleteChapter(b, st)}
 }

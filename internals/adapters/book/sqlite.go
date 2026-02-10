@@ -2,6 +2,7 @@ package book
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
@@ -64,7 +65,7 @@ func (i *implementation) GetBooks(title string) ([]book.Book, error) {
 	}
 	defer rows.Close()
 
-	books := []book.Book{}
+	var books []book.Book
 	for rows.Next() {
 		var b book.Book
 		if err := rows.Scan(&b.Id, &b.Title); err != nil {
@@ -83,7 +84,7 @@ func (i *implementation) GetBook(id int64) (*book.Book, error) {
 		RunWith(i.db).
 		QueryRow().
 		Scan(&b.Id, &b.Title)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -138,13 +139,13 @@ func (i *implementation) DeleteChapter(id int64) error {
 	return assertRowAffected(res)
 }
 
-func (i *implementation) GetChapters(bookId int64, number int) ([]book.Chapter, error) {
+func (i *implementation) GetChapters(bookId int64, numbers []int) ([]book.Chapter, error) {
 	q := sq.Select("id", "number", "book_id", "blur_url").
 		From("chapters").
 		Where(sq.Eq{"book_id": bookId}).
 		OrderBy("number ASC")
-	if number > 0 {
-		q = q.Where(sq.Eq{"number": number})
+	if len(numbers) > 0 {
+		q = q.Where(sq.Eq{"number": numbers})
 	}
 
 	rows, err := q.RunWith(i.db).Query()
@@ -153,7 +154,7 @@ func (i *implementation) GetChapters(bookId int64, number int) ([]book.Chapter, 
 	}
 	defer rows.Close()
 
-	chapters := []book.Chapter{}
+	var chapters []book.Chapter
 	for rows.Next() {
 		var c book.Chapter
 		if err = rows.Scan(&c.Id, &c.Number, &c.BookId, &c.BlurURL); err != nil {
@@ -172,7 +173,7 @@ func (i *implementation) GetChapter(chapterId int64) (*book.Chapter, error) {
 		RunWith(i.db).
 		QueryRow().
 		Scan(&c.Id, &c.Number, &c.BookId, &c.BlurURL)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -264,11 +265,40 @@ func (i *implementation) DeletePage(id int64) error {
 	return assertRowAffected(res)
 }
 
-func (i *implementation) GetPages(chapterId int64) ([]book.Page, error) {
-	rows, err := sq.Select("id", "chapter_id", "url", "llm_url", "mime", "page_number", "updated_at").
+func (i *implementation) GetPages(chapterIds []int64, withPanels bool) ([]book.Page, error) {
+	if !withPanels {
+		rows, err := sq.Select("pages.id", "pages.chapter_id", "pages.url", "pages.llm_url", "pages.mime", "pages.page_number", "pages.updated_at").
+			From("pages").
+			Join("chapters ON chapters.id = pages.chapter_id").
+			Where(sq.Eq{"pages.chapter_id": chapterIds}).
+			OrderBy("chapters.number ASC", "pages.page_number ASC").
+			RunWith(i.db).
+			Query()
+		if err != nil {
+			return nil, err
+		}
+		defer rows.Close()
+
+		var pages []book.Page
+		for rows.Next() {
+			var p book.Page
+			if err := rows.Scan(&p.Id, &p.ChapterId, &p.URL, &p.LLMURL, &p.MIME, &p.PageNumber, &p.UpdatedAt); err != nil {
+				return nil, err
+			}
+			pages = append(pages, p)
+		}
+		return pages, rows.Err()
+	}
+
+	rows, err := sq.Select(
+		"pages.id", "pages.chapter_id", "pages.url", "pages.llm_url", "pages.mime", "pages.page_number", "pages.updated_at",
+		"panels.id", "panels.url", "panels.panel_number", "panels.updated_at",
+	).
 		From("pages").
-		Where(sq.Eq{"chapter_id": chapterId}).
-		OrderBy("page_number ASC").
+		Join("chapters ON chapters.id = pages.chapter_id").
+		LeftJoin("panels ON panels.page_id = pages.id").
+		Where(sq.Eq{"pages.chapter_id": chapterIds}).
+		OrderBy("chapters.number ASC", "pages.page_number ASC", "panels.panel_number ASC").
 		RunWith(i.db).
 		Query()
 	if err != nil {
@@ -276,32 +306,124 @@ func (i *implementation) GetPages(chapterId int64) ([]book.Page, error) {
 	}
 	defer rows.Close()
 
-	pages := []book.Page{}
+	pageMap := make(map[int64]*book.Page)
+	var pageOrder []int64
 	for rows.Next() {
 		var p book.Page
-		if err := rows.Scan(&p.Id, &p.ChapterId, &p.URL, &p.LLMURL, &p.MIME, &p.PageNumber, &p.UpdatedAt); err != nil {
+		var panelId sql.NullInt64
+		var panelURL sql.NullString
+		var panelNumber sql.NullInt64
+		var panelUpdatedAt sql.NullTime
+
+		if err := rows.Scan(
+			&p.Id, &p.ChapterId, &p.URL, &p.LLMURL, &p.MIME, &p.PageNumber, &p.UpdatedAt,
+			&panelId, &panelURL, &panelNumber, &panelUpdatedAt,
+		); err != nil {
 			return nil, err
 		}
-		pages = append(pages, p)
+
+		existing, ok := pageMap[p.Id]
+		if !ok {
+			pageMap[p.Id] = &p
+			pageOrder = append(pageOrder, p.Id)
+			existing = &p
+		}
+
+		if panelId.Valid {
+			url := &panelURL.String
+			if !panelURL.Valid {
+				url = nil
+			}
+			existing.Panels = append(existing.Panels, book.Panel{
+				Id:          panelId.Int64,
+				PageId:      existing.Id,
+				URL:         url,
+				PanelNumber: int(panelNumber.Int64),
+				UpdatedAt:   panelUpdatedAt.Time,
+			})
+		}
 	}
-	return pages, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	pages := make([]book.Page, 0, len(pageOrder))
+	for _, id := range pageOrder {
+		pages = append(pages, *pageMap[id])
+	}
+	return pages, nil
 }
 
-func (i *implementation) GetPage(pageId int64) (*book.Page, error) {
-	var p book.Page
-	err := sq.Select("id", "chapter_id", "url", "llm_url", "mime", "page_number", "updated_at").
-		From("pages").
-		Where(sq.Eq{"id": pageId}).
-		RunWith(i.db).
-		QueryRow().
-		Scan(&p.Id, &p.ChapterId, &p.URL, &p.LLMURL, &p.MIME, &p.PageNumber, &p.UpdatedAt)
-	if err == sql.ErrNoRows {
-		return nil, nil
+func (i *implementation) GetPage(pageId int64, withPanels bool) (*book.Page, error) {
+	if !withPanels {
+		var p book.Page
+		err := sq.Select("id", "chapter_id", "url", "llm_url", "mime", "page_number", "updated_at").
+			From("pages").
+			Where(sq.Eq{"id": pageId}).
+			RunWith(i.db).
+			QueryRow().
+			Scan(&p.Id, &p.ChapterId, &p.URL, &p.LLMURL, &p.MIME, &p.PageNumber, &p.UpdatedAt)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		if err != nil {
+			return nil, err
+		}
+		return &p, nil
 	}
+
+	rows, err := sq.Select(
+		"pages.id", "pages.chapter_id", "pages.url", "pages.llm_url", "pages.mime", "pages.page_number", "pages.updated_at",
+		"panels.id", "panels.url", "panels.panel_number", "panels.updated_at",
+	).
+		From("pages").
+		LeftJoin("panels ON panels.page_id = pages.id").
+		Where(sq.Eq{"pages.id": pageId}).
+		OrderBy("panels.panel_number ASC").
+		RunWith(i.db).
+		Query()
 	if err != nil {
 		return nil, err
 	}
-	return &p, nil
+	defer rows.Close()
+
+	var page *book.Page
+	for rows.Next() {
+		var p book.Page
+		var panelId sql.NullInt64
+		var panelURL sql.NullString
+		var panelNumber sql.NullInt64
+		var panelUpdatedAt sql.NullTime
+
+		if err := rows.Scan(
+			&p.Id, &p.ChapterId, &p.URL, &p.LLMURL, &p.MIME, &p.PageNumber, &p.UpdatedAt,
+			&panelId, &panelURL, &panelNumber, &panelUpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+
+		if page == nil {
+			page = &p
+		}
+
+		if panelId.Valid {
+			url := &panelURL.String
+			if !panelURL.Valid {
+				url = nil
+			}
+			page.Panels = append(page.Panels, book.Panel{
+				Id:          panelId.Int64,
+				PageId:      page.Id,
+				URL:         url,
+				PanelNumber: int(panelNumber.Int64),
+				UpdatedAt:   panelUpdatedAt.Time,
+			})
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return page, nil
 }
 
 func (i *implementation) CreateManyPanel(panels []book.Panel) ([]book.Panel, error) {
@@ -393,7 +515,7 @@ func (i *implementation) GetPanels(pageId int64) ([]book.Panel, error) {
 	}
 	defer rows.Close()
 
-	panels := []book.Panel{}
+	var panels []book.Panel
 	for rows.Next() {
 		var p book.Panel
 		if err := rows.Scan(&p.Id, &p.PageId, &p.URL, &p.PanelNumber, &p.UpdatedAt); err != nil {
@@ -412,7 +534,7 @@ func (i *implementation) GetPanel(panelId int64) (*book.Panel, error) {
 		RunWith(i.db).
 		QueryRow().
 		Scan(&p.Id, &p.PageId, &p.URL, &p.PanelNumber, &p.UpdatedAt)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {

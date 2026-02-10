@@ -122,8 +122,8 @@ func (h *Handler) AddChapter(c *gin.Context) {
 
 func (h *Handler) GetChapters(c *gin.Context) {
 	var req struct {
-		Number int   `form:"number" binding:"omitempty,gt=0"`
-		BookID int64 `form:"bookId"  binding:"required,gt=0"`
+		Numbers []int `form:"number" binding:"omitempty,dive,gt=0"`
+		BookID  int64 `form:"bookId"  binding:"required,gt=0"`
 	}
 	if err := c.ShouldBindQuery(&req); err != nil {
 		_ = c.Error(validator.ValidateRequest(err))
@@ -132,7 +132,7 @@ func (h *Handler) GetChapters(c *gin.Context) {
 
 	var chapters []book2.Chapter
 	var err error
-	if chapters, err = h.service.GetChapters.Handle(req.BookID, req.Number); err != nil {
+	if chapters, err = h.service.GetChapters.Handle(req.BookID, req.Numbers); err != nil {
 		_ = c.Error(err)
 		return
 	}
@@ -159,7 +159,7 @@ func (h *Handler) DeleteChapter(c *gin.Context) {
 
 func (h *Handler) GetPages(c *gin.Context) {
 	var req struct {
-		ChapterId int64 `form:"chapterId"  binding:"required,gt=0"`
+		ChapterIds []int64 `form:"chapterId"  binding:"required,gt=0"`
 	}
 	if err := c.ShouldBindQuery(&req); err != nil {
 		_ = c.Error(validator.ValidateRequest(err))
@@ -168,7 +168,7 @@ func (h *Handler) GetPages(c *gin.Context) {
 
 	var pages []book2.Page
 	var err error
-	if pages, err = h.service.GetPages.Handle(req.ChapterId); err != nil {
+	if pages, err = h.service.GetPages.Handle(req.ChapterIds); err != nil {
 		_ = c.Error(err)
 		return
 	}

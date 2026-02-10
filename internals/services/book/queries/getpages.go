@@ -6,8 +6,8 @@ type GetPages struct {
 	bookImplementation book.Interface
 }
 
-func (service *GetPages) Handle(chapterId int64) ([]book.Page, error) {
-	return service.bookImplementation.GetPages(chapterId)
+func (service *GetPages) Handle(chapterIds []int64, withPanels bool) ([]book.Page, error) {
+	return service.bookImplementation.GetPages(chapterIds, withPanels)
 }
 
 func NewGetPages(bookImplementation book.Interface) *GetPages {

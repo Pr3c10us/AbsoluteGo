@@ -14,6 +14,6 @@ type Services struct {
 func NewServices(adapters *adapters.Adapters) *Services {
 	return &Services{
 		BookServices:   book.NewBookServices(adapters.BookImplementation, adapters.StorageRepository, adapters.AiImplementation, adapters.EnvironmentVariables),
-		ScriptServices: script.NewScriptServices(adapters.ScriptImplementation, adapters.AiImplementation, adapters.EnvironmentVariables),
+		ScriptServices: script.NewScriptServices(adapters.ScriptImplementation, adapters.BookImplementation, adapters.AiImplementation),
 	}
 }

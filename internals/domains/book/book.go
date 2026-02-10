@@ -22,6 +22,7 @@ type Page struct {
 	MIME       *string   `json:"mime"`
 	PageNumber int       `json:"pageNumber"`
 	UpdatedAt  time.Time `json:"updatedAt"`
+	Panels     []Panel   `json:"panels"`
 }
 
 type Panel struct {

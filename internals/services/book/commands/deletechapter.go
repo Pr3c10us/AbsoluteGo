@@ -22,7 +22,7 @@ func (s *DeleteChapter) Handle(chapterId int64) error {
 		return appError.BadRequest(errors.New("chapter does not exist"))
 	}
 
-	pages, err := s.bookImplementation.GetPages(ch.Id)
+	pages, err := s.bookImplementation.GetPages([]int64{ch.Id}, false)
 	if err != nil {
 		return err
 	}

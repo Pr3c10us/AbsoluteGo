@@ -6,8 +6,8 @@ type GetScripts struct {
 	scriptImplementation script.Interface
 }
 
-func (service *GetScripts) Handle(bookId int64, name string) ([]script.Script, error) {
-	return service.scriptImplementation.GetScripts(bookId, name)
+func (service *GetScripts) Handle(bookId int64, name string, ids []int64) ([]script.Script, error) {
+	return service.scriptImplementation.GetScripts(bookId, name, ids)
 }
 
 func NewGetScripts(scriptImplementation script.Interface) *GetScripts {
