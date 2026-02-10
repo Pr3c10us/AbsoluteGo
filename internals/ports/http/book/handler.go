@@ -168,7 +168,7 @@ func (h *Handler) GetPages(c *gin.Context) {
 
 	var pages []book2.Page
 	var err error
-	if pages, err = h.service.GetPages.Handle(req.ChapterIds); err != nil {
+	if pages, err = h.service.GetPages.Handle(req.ChapterIds, false); err != nil {
 		_ = c.Error(err)
 		return
 	}

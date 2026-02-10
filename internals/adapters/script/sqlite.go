@@ -193,9 +193,9 @@ func (i *implementation) DeleteSplits(scriptId int64) error {
 	return err
 }
 
-func (i *implementation) DeleteSplit(id int64) error {
+func (i *implementation) DeleteSplit(ids []int64) error {
 	res, err := sq.Delete("splits").
-		Where(sq.Eq{"id": id}).
+		Where(sq.Eq{"id": ids}).
 		RunWith(i.db).
 		Exec()
 	if err != nil {

@@ -15,7 +15,9 @@ type Services struct {
 
 type Commands struct {
 	DeleteScript   *commands.DeleteScript
+	DeleteSplits   *commands.DeleteSplits
 	GenerateScript *commands.GenerateScript
+	GenerateSplits *commands.GenerateSplits
 }
 
 type Queries struct {
@@ -27,7 +29,9 @@ func NewScriptServices(script script.Interface, book book.Interface, ai ai.Inter
 	return Services{
 		Commands: Commands{
 			DeleteScript:   commands.NewDeleteScript(script),
+			DeleteSplits:   commands.NewDeleteSplits(script),
 			GenerateScript: commands.NewGenerateScript(script, book, ai),
+			GenerateSplits: commands.NewGenerateSplits(script, book, ai),
 		},
 		Queries: Queries{
 			GetScripts: queries.NewGetScripts(script),

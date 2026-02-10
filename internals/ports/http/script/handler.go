@@ -40,25 +40,6 @@ func (h *Handler) GetScripts(c *gin.Context) {
 	response.NewSuccessResponse("", gin.H{"scripts": scripts}, nil).Send(c)
 }
 
-func (h *Handler) GetSplits(c *gin.Context) {
-	var req struct {
-		ScriptID int64 `form:"scriptId" binding:"required,gt=0"`
-	}
-	if err := c.ShouldBindQuery(&req); err != nil {
-		_ = c.Error(validator.ValidateRequest(err))
-		return
-	}
-
-	var splits []script2.Split
-	var err error
-	if splits, err = h.service.GetSplits.Handle(req.ScriptID); err != nil {
-		_ = c.Error(err)
-		return
-	}
-
-	response.NewSuccessResponse("", gin.H{"splits": splits}, nil).Send(c)
-}
-
 func (h *Handler) GenerateScripts(c *gin.Context) {
 	var req struct {
 		BookId          int64   `json:"bookId" binding:"required,gt=0"`
@@ -102,4 +83,57 @@ func (h *Handler) DeleteScript(c *gin.Context) {
 	}
 
 	response.NewSuccessResponse("script deleted", nil, nil).Send(c)
+}
+
+func (h *Handler) GetSplits(c *gin.Context) {
+	var req struct {
+		ScriptID int64 `form:"scriptId" binding:"required,gt=0"`
+	}
+	if err := c.ShouldBindQuery(&req); err != nil {
+		_ = c.Error(validator.ValidateRequest(err))
+		return
+	}
+
+	var splits []script2.Split
+	var err error
+	if splits, err = h.service.GetSplits.Handle(req.ScriptID); err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	response.NewSuccessResponse("", gin.H{"splits": splits}, nil).Send(c)
+}
+
+func (h *Handler) GenerateSplits(c *gin.Context) {
+	var req struct {
+		ScriptId int64 `uri:"scriptId" binding:"required,gt=0"`
+	}
+	if err := c.ShouldBindUri(&req); err != nil {
+		_ = c.Error(validator.ValidateRequest(err))
+		return
+	}
+
+	if err := h.service.GenerateSplits.Handle(req.ScriptId); err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	response.NewSuccessResponse("", gin.H{"message": "splits generated"}, nil).Send(c)
+}
+
+func (h *Handler) DeleteSplits(c *gin.Context) {
+	var uri struct {
+		Ids []int64 `form:"id" binding:"required,gt=0"`
+	}
+	if err := c.ShouldBindQuery(&uri); err != nil {
+		_ = c.Error(validator.ValidateRequest(err))
+		return
+	}
+
+	if err := h.service.DeleteSplits.Handle(uri.Ids); err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	response.NewSuccessResponse("splits deleted", nil, nil).Send(c)
 }

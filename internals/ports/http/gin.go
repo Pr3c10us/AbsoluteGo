@@ -75,6 +75,8 @@ func (server *GinServer) scriptRoutes() {
 		scriptRoute.DELETE("/:id", handler.DeleteScript)
 
 		scriptRoute.GET("/split", handler.GetSplits)
+		scriptRoute.DELETE("/split", handler.DeleteSplits)
+		scriptRoute.POST("/split/:scriptId", handler.GenerateSplits)
 	}
 }
 
