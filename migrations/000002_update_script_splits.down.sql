@@ -1,0 +1,1 @@
+ALTER TABLE splits RENAME TO script_splits;
