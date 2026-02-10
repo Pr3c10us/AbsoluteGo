@@ -149,8 +149,6 @@ CREATE INDEX IF NOT EXISTS idx_pages_chapter_id ON pages (chapter_id);
 CREATE INDEX IF NOT EXISTS idx_panels_page_id ON panels (page_id);
 CREATE INDEX IF NOT EXISTS idx_scripts_book_id ON scripts (book_id);
 CREATE INDEX IF NOT EXISTS idx_script_splits_script_id ON script_splits (script_id);
-CREATE INDEX IF NOT EXISTS idx_script_splits_chapter_id ON script_splits (chapter_id);
-CREATE INDEX IF NOT EXISTS idx_script_splits_page_id ON script_splits (page_id);
 CREATE INDEX IF NOT EXISTS idx_script_splits_panel_id ON script_splits (panel_id);
 CREATE INDEX IF NOT EXISTS idx_vab_script_id ON vab (script_id);
 CREATE INDEX IF NOT EXISTS idx_audios_video_id ON audios (video_id);

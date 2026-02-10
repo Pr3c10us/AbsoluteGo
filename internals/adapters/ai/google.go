@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/Pr3c10us/absolutego/internals/domains/ai"
 	"github.com/Pr3c10us/absolutego/packages/configs"
+	"github.com/Pr3c10us/absolutego/packages/utils"
 	"google.golang.org/genai"
 	"time"
 )
@@ -79,9 +80,11 @@ func (g *GoogleAI) UploadFiles(files []ai.File) ([]ai.UploadedFile, error) {
 }
 
 func (g *GoogleAI) uploadFile(ctx context.Context, f ai.File) (ai.UploadedFile, error) {
-	uploaded, err := g.client.Files.UploadFromPath(ctx, f.Path, &genai.UploadFileConfig{
-		MIMEType: f.MIMEType,
-	})
+	uploaded, err := utils.WithRetry(func() (*genai.File, error) {
+		return g.client.Files.UploadFromPath(ctx, f.Path, &genai.UploadFileConfig{
+			MIMEType: f.MIMEType,
+		})
+	}, 10, 300*time.Millisecond)
 	if err != nil {
 		return ai.UploadedFile{}, fmt.Errorf("upload file: %w", err)
 	}
@@ -186,6 +189,13 @@ func (g *GoogleAI) GenerateAudioLive(text string, voice ai.Voice) (*ai.Response,
 	return &ai.Response{Response: combinedBase64, Dollars: dollars}, nil
 }
 
+func (g *GoogleAI) GenerateAudio(text string, voice ai.Voice) (*ai.Response, error) {
+	response, err := utils.WithRetry(func() (*ai.Response, error) {
+		return g.GenerateAudioLive(text, voice)
+	}, 10, 300*time.Millisecond)
+	return response, err
+}
+
 func (g *GoogleAI) GenerateText(prompt string, useFastModel bool, uploadedFiles []ai.UploadedFile) (*ai.Response, error) {
 	ctx := context.Background()
 
@@ -213,7 +223,7 @@ func (g *GoogleAI) GenerateText(prompt string, useFastModel bool, uploadedFiles 
 		genai.NewContentFromParts(parts, genai.RoleUser),
 	}
 
-	config := &genai.GenerateContentConfig{
+	genConfig := &genai.GenerateContentConfig{
 		ThinkingConfig: &genai.ThinkingConfig{
 			ThinkingLevel: genai.ThinkingLevelHigh,
 		},
@@ -222,7 +232,9 @@ func (g *GoogleAI) GenerateText(prompt string, useFastModel bool, uploadedFiles 
 		},
 	}
 
-	response, err := g.client.Models.GenerateContent(ctx, model, contents, config)
+	response, err := utils.WithRetry(func() (*genai.GenerateContentResponse, error) {
+		return g.client.Models.GenerateContent(ctx, model, contents, genConfig)
+	}, 10, 300*time.Millisecond)
 	if err != nil {
 		return nil, fmt.Errorf("generate content: %w", err)
 	}

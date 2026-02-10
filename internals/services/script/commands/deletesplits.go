@@ -8,8 +8,8 @@ type DeleteSplits struct {
 	scriptImplementation script.Interface
 }
 
-func (s *DeleteSplits) Handle(splitIds []int64) error {
-	err := s.scriptImplementation.DeleteSplit(splitIds)
+func (s *DeleteSplits) Handle(scriptId int64) error {
+	err := s.scriptImplementation.DeleteSplits(scriptId)
 	return err
 }
 

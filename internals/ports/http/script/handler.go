@@ -87,9 +87,9 @@ func (h *Handler) DeleteScript(c *gin.Context) {
 
 func (h *Handler) GetSplits(c *gin.Context) {
 	var req struct {
-		ScriptID int64 `form:"scriptId" binding:"required,gt=0"`
+		ScriptID int64 `uri:"scriptId" binding:"required,gt=0"`
 	}
-	if err := c.ShouldBindQuery(&req); err != nil {
+	if err := c.ShouldBindUri(&req); err != nil {
 		_ = c.Error(validator.ValidateRequest(err))
 		return
 	}
@@ -122,15 +122,15 @@ func (h *Handler) GenerateSplits(c *gin.Context) {
 }
 
 func (h *Handler) DeleteSplits(c *gin.Context) {
-	var uri struct {
-		Ids []int64 `form:"id" binding:"required,gt=0"`
+	var req struct {
+		ScriptId int64 `uri:"scriptId" binding:"required,gt=0"`
 	}
-	if err := c.ShouldBindQuery(&uri); err != nil {
+	if err := c.ShouldBindUri(&req); err != nil {
 		_ = c.Error(validator.ValidateRequest(err))
 		return
 	}
 
-	if err := h.service.DeleteSplits.Handle(uri.Ids); err != nil {
+	if err := h.service.DeleteSplits.Handle(req.ScriptId); err != nil {
 		_ = c.Error(err)
 		return
 	}

@@ -53,6 +53,7 @@ func (s *GenerateScript) Handle(parameters Parameters) (string, int64, error) {
 	for _, chapter := range fetchedChapters {
 		chapterIds = append(chapterIds, chapter.Id)
 	}
+	
 	uploadedFiles, err := getUploads(chapterIds, s.book, s.ai)
 	if err != nil {
 		return "", 0, err

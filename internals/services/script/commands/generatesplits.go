@@ -91,6 +91,11 @@ func (s *GenerateSplits) Handle(scriptId int64) error {
 		splits = append(splits, split)
 	}
 
+	err = s.script.DeleteSplits(scriptId)
+	if err != nil {
+		return err
+	}
+
 	if len(splits) > 0 {
 		_, err = s.script.CreateManySplit(splits)
 		if err != nil {

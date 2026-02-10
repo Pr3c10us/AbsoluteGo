@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/Pr3c10us/absolutego/internals/domains/book"
 	"github.com/Pr3c10us/absolutego/internals/domains/script"
 )
 
@@ -205,9 +206,13 @@ func (i *implementation) DeleteSplit(ids []int64) error {
 }
 
 func (i *implementation) GetSplits(scriptId int64) ([]script.Split, error) {
-	rows, err := sq.Select("id", "script_id", "content", "panel_id", "effect").
+	rows, err := sq.Select(
+		"splits.id", "splits.script_id", "splits.content", "splits.panel_id", "splits.effect",
+		"panels.id", "panels.page_id", "panels.url", "panels.panel_number", "panels.updated_at",
+	).
 		From("splits").
-		Where(sq.Eq{"script_id": scriptId}).
+		LeftJoin("panels ON panels.id = splits.panel_id").
+		Where(sq.Eq{"splits.script_id": scriptId}).
 		RunWith(i.db).
 		Query()
 	if err != nil {
@@ -218,9 +223,33 @@ func (i *implementation) GetSplits(scriptId int64) ([]script.Split, error) {
 	var splits []script.Split
 	for rows.Next() {
 		var s script.Split
-		if err := rows.Scan(&s.Id, &s.ScriptId, &s.Content, &s.PanelId, &s.Effect); err != nil {
+		var panelId sql.NullInt64
+		var panelPageId sql.NullInt64
+		var panelURL sql.NullString
+		var panelNumber sql.NullInt64
+		var panelUpdatedAt sql.NullTime
+
+		if err := rows.Scan(
+			&s.Id, &s.ScriptId, &s.Content, &s.PanelId, &s.Effect,
+			&panelId, &panelPageId, &panelURL, &panelNumber, &panelUpdatedAt,
+		); err != nil {
 			return nil, err
 		}
+
+		if panelId.Valid {
+			url := &panelURL.String
+			if !panelURL.Valid {
+				url = nil
+			}
+			s.Panel = book.Panel{
+				Id:          panelId.Int64,
+				PageId:      panelPageId.Int64,
+				URL:         url,
+				PanelNumber: int(panelNumber.Int64),
+				UpdatedAt:   panelUpdatedAt.Time,
+			}
+		}
+
 		splits = append(splits, s)
 	}
 	return splits, rows.Err()
@@ -228,18 +257,46 @@ func (i *implementation) GetSplits(scriptId int64) ([]script.Split, error) {
 
 func (i *implementation) GetSplit(id int64) (*script.Split, error) {
 	var s script.Split
-	err := sq.Select("id", "script_id", "content", "panel_id", "effect").
+	var panelId sql.NullInt64
+	var panelPageId sql.NullInt64
+	var panelURL sql.NullString
+	var panelNumber sql.NullInt64
+	var panelUpdatedAt sql.NullTime
+
+	err := sq.Select(
+		"splits.id", "splits.script_id", "splits.content", "splits.panel_id", "splits.effect",
+		"panels.id", "panels.page_id", "panels.url", "panels.panel_number", "panels.updated_at",
+	).
 		From("splits").
-		Where(sq.Eq{"id": id}).
+		LeftJoin("panels ON panels.id = splits.panel_id").
+		Where(sq.Eq{"splits.id": id}).
 		RunWith(i.db).
 		QueryRow().
-		Scan(&s.Id, &s.ScriptId, &s.Content, &s.PanelId, &s.Effect)
+		Scan(
+			&s.Id, &s.ScriptId, &s.Content, &s.PanelId, &s.Effect,
+			&panelId, &panelPageId, &panelURL, &panelNumber, &panelUpdatedAt,
+		)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
+
+	if panelId.Valid {
+		url := &panelURL.String
+		if !panelURL.Valid {
+			url = nil
+		}
+		s.Panel = book.Panel{
+			Id:          panelId.Int64,
+			PageId:      panelPageId.Int64,
+			URL:         url,
+			PanelNumber: int(panelNumber.Int64),
+			UpdatedAt:   panelUpdatedAt.Time,
+		}
+	}
+
 	return &s, nil
 }
 
