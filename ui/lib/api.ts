@@ -210,3 +210,99 @@ export function fetchPanels(pageId: number): Promise<GetPanelsResponse> {
     `/api/v1/book/panel?pageId=${pageId}`
   );
 }
+
+// ---- Script types ---------------------------------------------------------
+
+export interface Script {
+  id: number;
+  name: string;
+  content: string;
+  bookId: number;
+  chapters: number[];
+}
+
+export interface GetScriptsResponse {
+  message: string;
+  data: { scripts: Script[] | null };
+}
+
+export interface GenerateScriptResponse {
+  message: string;
+  data: { script: string; scriptId: number };
+}
+
+// ---- Script API calls -----------------------------------------------------
+
+export function fetchScripts(
+  bookId: number,
+  opts?: { name?: string; ids?: number[] }
+): Promise<GetScriptsResponse> {
+  const params = new URLSearchParams({ bookId: String(bookId) });
+  if (opts?.name) params.set("name", opts.name);
+  if (opts?.ids) {
+    for (const id of opts.ids) params.append("id", String(id));
+  }
+  return apiFetch<GetScriptsResponse>(`/api/v1/script?${params.toString()}`);
+}
+
+export function generateScript(body: {
+  bookId: number;
+  name: string;
+  chapters: number[];
+  previousScripts?: number[];
+}): Promise<GenerateScriptResponse> {
+  return apiFetch<GenerateScriptResponse>("/api/v1/script", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function deleteScript(scriptId: number): Promise<MutationResponse> {
+  return apiFetch<MutationResponse>(`/api/v1/script/${scriptId}`, {
+    method: "DELETE",
+  });
+}
+
+// ---- Split types ----------------------------------------------------------
+
+export interface SplitPanel {
+  id: number;
+  pageId: number;
+  url: string;
+  panelNumber: number;
+  updatedAt: string;
+}
+
+export interface Split {
+  id: number;
+  scriptId: number;
+  content: string;
+  panelId: number;
+  effect: string;
+  panel: SplitPanel;
+}
+
+export interface GetSplitsResponse {
+  message: string;
+  data: { splits: Split[] | null };
+}
+
+// ---- Split API calls ------------------------------------------------------
+
+export function fetchSplits(scriptId: number): Promise<GetSplitsResponse> {
+  return apiFetch<GetSplitsResponse>(`/api/v1/script/split/${scriptId}`);
+}
+
+export function generateSplits(
+  scriptId: number
+): Promise<MutationResponse> {
+  return apiFetch<MutationResponse>(`/api/v1/script/split/${scriptId}`, {
+    method: "POST",
+  });
+}
+
+export function deleteSplits(scriptId: number): Promise<MutationResponse> {
+  return apiFetch<MutationResponse>(`/api/v1/script/split/${scriptId}`, {
+    method: "DELETE",
+  });
+}

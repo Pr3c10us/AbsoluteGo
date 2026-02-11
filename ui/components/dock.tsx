@@ -13,6 +13,7 @@ import {
     Children,
     cloneElement,
     useEffect,
+    useMemo,
     useRef,
     useState,
     type ReactElement,
@@ -71,14 +72,6 @@ const VideoIcon = (
         <rect x="2" y="6" width="14" height="12" rx="2" />
     </svg>
 );
-
-// ── Nav items ───────────────────────────────────────────────────────────────
-
-const NAV_ITEMS = [
-    { href: "/books", label: "Book", icon: BookIcon },
-    { href: "/scripts", label: "Script", icon: ScriptIcon },
-    { href: "/videos", label: "Video", icon: VideoIcon },
-];
 
 // ── ReactBits Dock internals (adapted) ──────────────────────────────────────
 
@@ -183,6 +176,14 @@ function DockIcon({ children }: { children: React.ReactNode }) {
     return <div className="dock-icon">{children}</div>;
 }
 
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Extract book ID from pathname like /books/42 or /books/42/scripts */
+function extractBookId(pathname: string): string | null {
+    const match = pathname.match(/^\/books\/(\d+)/);
+    return match ? match[1] : null;
+}
+
 // ── Main Dock ───────────────────────────────────────────────────────────────
 
 const SPRING = { mass: 0.1, stiffness: 150, damping: 12 };
@@ -204,8 +205,22 @@ export default function Dock() {
     const heightRow = useTransform(isHovered, [0, 1], [PANEL_HEIGHT, maxHeight]);
     const height = useSpring(heightRow, SPRING);
 
-    // Don't show dock on home page (after all hooks)
-    if (pathname === "/") return null;
+    // Extract book ID from the current path
+    const bookId = extractBookId(pathname);
+
+    // Build context-aware nav items based on the current book
+    const navItems = useMemo(() => {
+        if (!bookId) return [];
+        const base = `/books/${bookId}`;
+        return [
+            { href: base, label: "Chapters", icon: BookIcon },
+            { href: `${base}/scripts`, label: "Scripts", icon: ScriptIcon },
+            { href: `${base}/videos`, label: "Videos", icon: VideoIcon },
+        ];
+    }, [bookId]);
+
+    // Don't show dock on home/books listing page or if no book context
+    if (!bookId) return null;
 
     return (
         <motion.div
@@ -226,9 +241,14 @@ export default function Dock() {
                 role="toolbar"
                 aria-label="Application dock"
             >
-                {NAV_ITEMS.map(({ href, label, icon }) => {
+                {navItems.map(({ href, label, icon }) => {
+                    // Exact match for the book root, startsWith for sub-routes
                     const isActive =
-                        pathname === href || pathname.startsWith(href + "/");
+                        href === `/books/${bookId}`
+                            ? pathname === href ||
+                            pathname === `${href}/chapters` ||
+                            pathname.startsWith(`${href}/chapters/`)
+                            : pathname === href || pathname.startsWith(href + "/");
 
                     return (
                         <Link key={href} href={href} className="dock-link">
@@ -250,4 +270,3 @@ export default function Dock() {
         </motion.div>
     );
 }
-

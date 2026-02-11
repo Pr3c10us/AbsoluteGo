@@ -349,7 +349,7 @@ export default function BookDetailPage() {
     const bookTitle = book?.title ?? `Book #${bookId}`;
 
     return (
-        <div className="mx-auto min-h-screen max-w-5xl px-6 pb-20 max-sm:px-4">
+        <div className="mx-auto max-w-5xl px-6 pb-20 max-sm:px-4">
             {/* ── Delete confirmation ─────────────────────────────────── */}
             <AlertDialog
                 open={confirmChapter !== null}
@@ -375,7 +375,7 @@ export default function BookDetailPage() {
             {/* ── Hero ──────────────────────────────────────────────────── */}
             <header className="relative pb-10 pt-20 max-sm:pb-7 max-sm:pt-12">
                 <Link
-                    href="/books"
+                    href="/"
                     className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                     {ArrowLeftIcon}

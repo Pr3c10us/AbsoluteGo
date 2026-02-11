@@ -2,6 +2,7 @@ package commands
 
 import (
 	"errors"
+	"fmt"
 	"github.com/Pr3c10us/absolutego/internals/domains/ai"
 	"github.com/Pr3c10us/absolutego/internals/domains/book"
 	"github.com/Pr3c10us/absolutego/internals/domains/script"
@@ -73,21 +74,51 @@ func (s *GenerateSplits) Handle(scriptId int64) error {
 		pageMap[pages[i].PageNumber] = &pages[i]
 	}
 
-	splits := make([]script.Split, 0, len(splitResult))
+	// Track splits by page-panel key, storing the index of first occurrence
+	type splitGroup struct {
+		index   int
+		content string
+		effect  string
+		panelId *int64
+	}
 
-	for _, result := range splitResult {
+	splitMap := make(map[string]*splitGroup)
+	orderedKeys := make([]string, 0, len(splitResult))
+
+	for i, result := range splitResult {
 		p := pageMap[result.Page]
 		if p == nil || len(p.Panels) == 0 {
 			continue
 		}
 
+		key := fmt.Sprintf("%d-%d", result.Page, result.Panel)
+
+		if existing, exists := splitMap[key]; exists {
+			// Merge content with existing
+			existing.content = existing.content + "\n" + result.Script
+		} else {
+			// New entry - store it
+			panelId := resolvePanelId(p.Panels, result.Panel)
+			splitMap[key] = &splitGroup{
+				index:   i,
+				content: result.Script,
+				effect:  result.Effect,
+				panelId: panelId,
+			}
+			orderedKeys = append(orderedKeys, key)
+		}
+	}
+
+	// Build splits in original order
+	splits := make([]script.Split, 0, len(splitMap))
+	for _, key := range orderedKeys {
+		group := splitMap[key]
 		split := script.Split{
 			ScriptId: scr.Id,
-			Content:  &result.Script,
-			Effect:   &result.Effect,
-			PanelId:  resolvePanelId(p.Panels, result.Panel),
+			Content:  &group.content,
+			Effect:   &group.effect,
+			PanelId:  group.panelId,
 		}
-
 		splits = append(splits, split)
 	}
 

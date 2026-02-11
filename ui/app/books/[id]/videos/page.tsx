@@ -1,4 +1,9 @@
+"use client";
+
 import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { fetchBooks, type Book } from "@/lib/api";
 
 const ArrowLeftIcon = (
     <svg
@@ -27,7 +32,7 @@ const HeroUnderline = (
     </svg>
 );
 
-const ScriptIcon = (
+const VideoEmptyIcon = (
     <svg
         className="mx-auto mb-3 h-10 w-10 text-neutral-300"
         viewBox="0 0 24 24"
@@ -37,42 +42,53 @@ const ScriptIcon = (
         strokeLinecap="round"
         strokeLinejoin="round"
     >
-        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-        <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-        <path d="M10 13H8" />
-        <path d="M16 17H8" />
-        <path d="M16 13h-2" />
+        <path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.934a.5.5 0 0 0-.777-.416L16 11" />
+        <rect x="2" y="6" width="14" height="12" rx="2" />
     </svg>
 );
 
-export default function ScriptsPage() {
+export default function BookVideosPage() {
+    const params = useParams();
+    const bookId = Number(params.id);
+
+    const { data: booksData } = useQuery({
+        queryKey: ["books"],
+        queryFn: () => fetchBooks(),
+    });
+
+    const book: Book | undefined = booksData?.data?.books?.find(
+        (b) => b.id === bookId
+    );
+
+    const bookTitle = book?.title ?? `Book #${bookId}`;
+
     return (
-        <div className="mx-auto min-h-screen max-w-5xl px-6 pb-20 max-sm:px-4">
+        <div className="mx-auto max-w-5xl px-6 pb-20 max-sm:px-4">
             <header className="relative pb-10 pt-20 max-sm:pb-7 max-sm:pt-12">
                 <Link
-                    href="/"
+                    href={`/books/${bookId}`}
                     className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                     {ArrowLeftIcon}
-                    Home
+                    {bookTitle}
                 </Link>
                 <h1 className="text-[clamp(3.5rem,10vw,6rem)] font-bold leading-[0.85] tracking-tighter max-sm:text-5xl">
-                    SCRIPTS
+                    VIDEOS
                 </h1>
                 {HeroUnderline}
                 <span className="mt-4 block text-[11px] font-medium uppercase tracking-[0.3em] text-muted-foreground">
-                    WRITING WORKSPACE
+                    VIDEO PRODUCTION
                 </span>
             </header>
 
             <section className="border-t border-border pt-12">
                 <div className="py-16 text-center text-muted-foreground">
-                    {ScriptIcon}
+                    {VideoEmptyIcon}
                     <p className="text-sm font-medium text-foreground">
                         Coming soon.
                     </p>
                     <span className="text-xs">
-                        Script management is under development.
+                        Video management for &ldquo;{bookTitle}&rdquo; is under development.
                     </span>
                 </div>
             </section>

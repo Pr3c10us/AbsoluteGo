@@ -10,7 +10,7 @@ import {
     useEffect,
     type PointerEvent as ReactPointerEvent,
 } from "react";
-import { useUpload } from "@/lib/upload-context";
+import { useUpload, type BackgroundTask } from "@/lib/upload-context";
 
 // ── Static SVG icons (hoisted — rendering-hoist-jsx) ────────────────────────
 
@@ -34,13 +34,27 @@ const ErrorIcon = (
     </svg>
 );
 
-const UploadIcon = (
+const TasksIcon = (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-        <polyline points="17 8 12 3 7 8" />
-        <line x1="12" y1="3" x2="12" y2="15" />
+        <path d="M16 3h5v5" />
+        <path d="M8 3H3v5" />
+        <path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3" />
+        <path d="m15 9 6-6" />
     </svg>
 );
+
+// ── Task display helpers ────────────────────────────────────────────────────
+
+function getTaskLabel(task: BackgroundTask): string {
+    if (task.type === "upload") return `Ch.${task.chapterNumber}`;
+    return task.scriptName;
+}
+
+function getTaskSubtitle(task: BackgroundTask): string {
+    if (task.type === "upload") return task.fileName;
+    if (task.type === "split") return "Split generation";
+    return "Script generation";
+}
 
 // ── Corner snapping ─────────────────────────────────────────────────────────
 
@@ -73,7 +87,7 @@ function findClosestCorner(cx: number, cy: number): Corner {
 // ── Upload Tracker ──────────────────────────────────────────────────────────
 
 const UploadTracker = memo(function UploadTracker() {
-    const { uploads } = useUpload();
+    const { tasks } = useUpload();
     const [corner, setCorner] = useState<Corner>("br");
     const [expanded, setExpanded] = useState(false);
     const [dragging, setDragging] = useState(false);
@@ -149,9 +163,9 @@ const UploadTracker = memo(function UploadTracker() {
     // Cleanup timer
     useEffect(() => () => { if (hideTimerRef.current) clearTimeout(hideTimerRef.current); }, []);
 
-    if (uploads.length === 0) return null;
+    if (tasks.length === 0) return null;
 
-    const activeCount = uploads.filter((u) => u.status === "uploading").length;
+    const activeCount = tasks.filter((t) => t.status === "uploading").length;
     const position = dragPos ?? snappedPos;
     const isTopCorner = corner === "tl" || corner === "tr";
     const isRightCorner = corner === "tr" || corner === "br";
@@ -184,9 +198,9 @@ const UploadTracker = memo(function UploadTracker() {
                 onPointerDown={onPointerDown}
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}
-                aria-label="Upload tracker"
+                aria-label="Background tasks"
             >
-                {activeCount > 0 ? UploadingSpinner : UploadIcon}
+                {activeCount > 0 ? UploadingSpinner : TasksIcon}
                 {activeCount > 0 ? (
                     <span className="ut-pill-badge">{activeCount}</span>
                 ) : null}
@@ -203,32 +217,32 @@ const UploadTracker = memo(function UploadTracker() {
                     <div className="ut-panel-header">
                         <span className="ut-panel-title">
                             {activeCount > 0
-                                ? `Processing ${activeCount} upload${activeCount > 1 ? "s" : ""}…`
-                                : "Uploads"}
+                                ? `Processing ${activeCount} task${activeCount > 1 ? "s" : ""}…`
+                                : "Tasks"}
                         </span>
                     </div>
                     <ul className="ut-panel-list">
-                        {uploads.map((upload) => (
-                            <li key={upload.id} className="ut-panel-item">
+                        {tasks.map((task) => (
+                            <li key={task.id} className="ut-panel-item">
                                 <span className="ut-panel-item-icon">
-                                    {upload.status === "uploading"
+                                    {task.status === "uploading"
                                         ? UploadingSpinner
-                                        : upload.status === "done"
+                                        : task.status === "done"
                                             ? CheckIcon
                                             : ErrorIcon}
                                 </span>
                                 <div className="ut-panel-item-info">
                                     <span className="ut-panel-item-name">
-                                        Ch.{upload.chapterNumber}
+                                        {getTaskLabel(task)}
                                     </span>
                                     <span className="ut-panel-item-file">
-                                        {upload.fileName}
+                                        {getTaskSubtitle(task)}
                                     </span>
                                 </div>
-                                <span className={`ut-panel-badge ut-panel-badge--${upload.status}`}>
-                                    {upload.status === "uploading"
+                                <span className={`ut-panel-badge ut-panel-badge--${task.status}`}>
+                                    {task.status === "uploading"
                                         ? "Processing"
-                                        : upload.status === "done"
+                                        : task.status === "done"
                                             ? "Done"
                                             : "Failed"}
                                 </span>
