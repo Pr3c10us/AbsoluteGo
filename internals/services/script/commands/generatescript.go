@@ -53,15 +53,21 @@ func (s *GenerateScript) Handle(parameters Parameters) (string, int64, error) {
 	for _, chapter := range fetchedChapters {
 		chapterIds = append(chapterIds, chapter.Id)
 	}
-	
+
 	uploadedFiles, err := getUploads(chapterIds, s.book, s.ai)
 	if err != nil {
 		return "", 0, err
 	}
 
-	previousScripts, err := s.script.GetScripts(b.Id, "", parameters.PreviousScripts)
-	if err != nil {
-		return "", 0, err
+	var previousScripts []script.Script
+	if len(parameters.PreviousScripts) > 0 {
+		previousScripts, err = s.script.GetScripts(script.Query{
+			BookId: b.Id,
+			Ids:    parameters.PreviousScripts,
+		})
+		if err != nil {
+			return "", 0, err
+		}
 	}
 	concatenatedScript := s.concatScripts(previousScripts, b.Title)
 	scriptPrompt := prompts.ScriptPrompt(b.Title, parameters.Chapters, &concatenatedScript)

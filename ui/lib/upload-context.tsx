@@ -57,6 +57,7 @@ interface UploadContextValue {
         previousScripts?: number[];
     }) => void;
     generateSplitsTask: (scriptId: number, scriptName: string) => void;
+    isSplitGenerating: (scriptId: number) => boolean;
 }
 
 // ── Context ─────────────────────────────────────────────────────────────────
@@ -240,8 +241,16 @@ export function UploadProvider({ children }: { children: ReactNode }) {
         [queryClient]
     );
 
+    const isSplitGenerating = useCallback(
+        (scriptId: number) =>
+            tasks.some(
+                (t) => t.type === "split" && t.scriptId === scriptId && t.status === "uploading"
+            ),
+        [tasks]
+    );
+
     return (
-        <UploadContext.Provider value={{ tasks, uploadChapter, generateScriptTask, generateSplitsTask }}>
+        <UploadContext.Provider value={{ tasks, uploadChapter, generateScriptTask, generateSplitsTask, isSplitGenerating }}>
             {children}
         </UploadContext.Provider>
     );

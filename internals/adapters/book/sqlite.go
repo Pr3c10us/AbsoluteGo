@@ -267,7 +267,10 @@ func (i *implementation) DeletePage(id int64) error {
 
 func (i *implementation) GetPages(chapterIds []int64, withPanels bool) ([]book.Page, error) {
 	if !withPanels {
-		rows, err := sq.Select("pages.id", "pages.chapter_id", "pages.url", "pages.llm_url", "pages.mime", "pages.page_number", "pages.updated_at").
+		rows, err := sq.Select(
+			"pages.id", "pages.chapter_id", "pages.url", "pages.llm_url", "pages.mime", "pages.page_number", "pages.updated_at",
+			"chapters.id", "chapters.number", "chapters.book_id", "chapters.blur_url",
+		).
 			From("pages").
 			Join("chapters ON chapters.id = pages.chapter_id").
 			Where(sq.Eq{"pages.chapter_id": chapterIds}).
@@ -282,9 +285,12 @@ func (i *implementation) GetPages(chapterIds []int64, withPanels bool) ([]book.P
 		var pages []book.Page
 		for rows.Next() {
 			var p book.Page
-			if err := rows.Scan(&p.Id, &p.ChapterId, &p.URL, &p.LLMURL, &p.MIME, &p.PageNumber, &p.UpdatedAt); err != nil {
+			var c book.Chapter
+			if err := rows.Scan(&p.Id, &p.ChapterId, &p.URL, &p.LLMURL, &p.MIME, &p.PageNumber, &p.UpdatedAt,
+				&c.Id, &c.Number, &c.BookId, &c.BlurURL); err != nil {
 				return nil, err
 			}
+			p.Chapter = c
 			pages = append(pages, p)
 		}
 		return pages, rows.Err()
@@ -292,6 +298,7 @@ func (i *implementation) GetPages(chapterIds []int64, withPanels bool) ([]book.P
 
 	rows, err := sq.Select(
 		"pages.id", "pages.chapter_id", "pages.url", "pages.llm_url", "pages.mime", "pages.page_number", "pages.updated_at",
+		"chapters.id", "chapters.number", "chapters.book_id", "chapters.blur_url",
 		"panels.id", "panels.url", "panels.panel_number", "panels.updated_at",
 	).
 		From("pages").
@@ -310,6 +317,7 @@ func (i *implementation) GetPages(chapterIds []int64, withPanels bool) ([]book.P
 	var pageOrder []int64
 	for rows.Next() {
 		var p book.Page
+		var c book.Chapter
 		var panelId sql.NullInt64
 		var panelURL sql.NullString
 		var panelNumber sql.NullInt64
@@ -317,6 +325,7 @@ func (i *implementation) GetPages(chapterIds []int64, withPanels bool) ([]book.P
 
 		if err := rows.Scan(
 			&p.Id, &p.ChapterId, &p.URL, &p.LLMURL, &p.MIME, &p.PageNumber, &p.UpdatedAt,
+			&c.Id, &c.Number, &c.BookId, &c.BlurURL,
 			&panelId, &panelURL, &panelNumber, &panelUpdatedAt,
 		); err != nil {
 			return nil, err
@@ -324,6 +333,7 @@ func (i *implementation) GetPages(chapterIds []int64, withPanels bool) ([]book.P
 
 		existing, ok := pageMap[p.Id]
 		if !ok {
+			p.Chapter = c
 			pageMap[p.Id] = &p
 			pageOrder = append(pageOrder, p.Id)
 			existing = &p
@@ -357,26 +367,35 @@ func (i *implementation) GetPages(chapterIds []int64, withPanels bool) ([]book.P
 func (i *implementation) GetPage(pageId int64, withPanels bool) (*book.Page, error) {
 	if !withPanels {
 		var p book.Page
-		err := sq.Select("id", "chapter_id", "url", "llm_url", "mime", "page_number", "updated_at").
+		var c book.Chapter
+		err := sq.Select(
+			"pages.id", "pages.chapter_id", "pages.url", "pages.llm_url", "pages.mime", "pages.page_number", "pages.updated_at",
+			"chapters.id", "chapters.number", "chapters.book_id", "chapters.blur_url",
+		).
 			From("pages").
-			Where(sq.Eq{"id": pageId}).
+			Join("chapters ON chapters.id = pages.chapter_id").
+			Where(sq.Eq{"pages.id": pageId}).
 			RunWith(i.db).
 			QueryRow().
-			Scan(&p.Id, &p.ChapterId, &p.URL, &p.LLMURL, &p.MIME, &p.PageNumber, &p.UpdatedAt)
+			Scan(&p.Id, &p.ChapterId, &p.URL, &p.LLMURL, &p.MIME, &p.PageNumber, &p.UpdatedAt,
+				&c.Id, &c.Number, &c.BookId, &c.BlurURL)
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		if err != nil {
 			return nil, err
 		}
+		p.Chapter = c
 		return &p, nil
 	}
 
 	rows, err := sq.Select(
 		"pages.id", "pages.chapter_id", "pages.url", "pages.llm_url", "pages.mime", "pages.page_number", "pages.updated_at",
+		"chapters.id", "chapters.number", "chapters.book_id", "chapters.blur_url",
 		"panels.id", "panels.url", "panels.panel_number", "panels.updated_at",
 	).
 		From("pages").
+		Join("chapters ON chapters.id = pages.chapter_id").
 		LeftJoin("panels ON panels.page_id = pages.id").
 		Where(sq.Eq{"pages.id": pageId}).
 		OrderBy("panels.panel_number ASC").
@@ -390,6 +409,7 @@ func (i *implementation) GetPage(pageId int64, withPanels bool) (*book.Page, err
 	var page *book.Page
 	for rows.Next() {
 		var p book.Page
+		var c book.Chapter
 		var panelId sql.NullInt64
 		var panelURL sql.NullString
 		var panelNumber sql.NullInt64
@@ -397,12 +417,14 @@ func (i *implementation) GetPage(pageId int64, withPanels bool) (*book.Page, err
 
 		if err := rows.Scan(
 			&p.Id, &p.ChapterId, &p.URL, &p.LLMURL, &p.MIME, &p.PageNumber, &p.UpdatedAt,
+			&c.Id, &c.Number, &c.BookId, &c.BlurURL,
 			&panelId, &panelURL, &panelNumber, &panelUpdatedAt,
 		); err != nil {
 			return nil, err
 		}
 
 		if page == nil {
+			p.Chapter = c
 			page = &p
 		}
 

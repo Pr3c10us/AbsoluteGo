@@ -871,7 +871,7 @@ func drawOverlay(img *image.RGBA, panels []OutputPanel) {
 			dc.SetColor(white)
 			label := fmt.Sprintf("Panel %d", i+1)
 			textX := float64(p.Left + 8 + labelW/2)
-			textY := float64(b - 62 + 27 + 5)
+			textY := float64(b - 35)
 			dc.DrawStringAnchored(label, textX, textY, 0.5, 0.5)
 		}
 	}

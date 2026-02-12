@@ -3,6 +3,7 @@ package book
 import (
 	"github.com/Pr3c10us/absolutego/internals/domains/ai"
 	"github.com/Pr3c10us/absolutego/internals/domains/book"
+	"github.com/Pr3c10us/absolutego/internals/domains/script"
 	"github.com/Pr3c10us/absolutego/internals/domains/storage"
 	"github.com/Pr3c10us/absolutego/internals/services/book/commands"
 	"github.com/Pr3c10us/absolutego/internals/services/book/queries"
@@ -28,13 +29,13 @@ type Queries struct {
 	GetPanels   *queries.GetPanels
 }
 
-func NewBookServices(bookImplementation book.Interface, storageImplementation storage.Interface, aiImplementation ai.Interface, environmentVariables *configs.EnvironmentVariables) Services {
+func NewBookServices(bookImplementation book.Interface, storageImplementation storage.Interface, aiImplementation ai.Interface, environmentVariables *configs.EnvironmentVariables, scriptImplementation script.Interface) Services {
 	return Services{
 		Commands: Commands{
-			AddChapter:    commands.NewAddChapter(bookImplementation, storageImplementation, aiImplementation, environmentVariables),
+			AddChapter:    commands.NewAddChapter(bookImplementation, storageImplementation, aiImplementation, environmentVariables, scriptImplementation),
 			AddBook:       commands.NewAddBook(bookImplementation),
-			DeleteBook:    commands.NewDeleteBook(bookImplementation, storageImplementation),
-			DeleteChapter: commands.NewDeleteChapter(bookImplementation, storageImplementation),
+			DeleteBook:    commands.NewDeleteBook(bookImplementation, storageImplementation, scriptImplementation),
+			DeleteChapter: commands.NewDeleteChapter(bookImplementation, storageImplementation, scriptImplementation),
 		},
 		Queries: Queries{
 			GetBooks:    queries.NewGetBooks(bookImplementation),

@@ -70,17 +70,23 @@ func (i *implementation) DeleteScript(id int64) error {
 	return assertRowAffected(res)
 }
 
-func (i *implementation) GetScripts(bookId int64, name string, ids []int64) ([]script.Script, error) {
+func (i *implementation) GetScripts(query script.Query) ([]script.Script, error) {
 	q := sq.Select("id", "name", "content", "book_id", "chapters").
 		From("scripts")
-	if bookId > 0 {
-		q = q.Where(sq.Eq{"book_id": bookId})
+	if query.BookId > 0 {
+		q = q.Where(sq.Eq{"book_id": query.BookId})
 	}
-	if name != "" {
-		q = q.Where(sq.Like{"name": fmt.Sprintf("%%%s%%", name)})
+	if query.Name != "" {
+		q = q.Where(sq.Like{"name": fmt.Sprintf("%%%s%%", query.Name)})
 	}
-	if len(ids) > 0 {
-		q = q.Where(sq.Eq{"id": ids})
+	if len(query.Ids) > 0 {
+		q = q.Where(sq.Eq{"id": query.Ids})
+	}
+	if query.Chapter > 0 {
+		q = q.Where(sq.Expr(
+			"EXISTS (SELECT 1 FROM json_each(chapters) WHERE value = ?)",
+			query.Chapter,
+		))
 	}
 
 	rows, err := q.RunWith(i.db).Query()

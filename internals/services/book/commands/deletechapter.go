@@ -2,6 +2,8 @@ package commands
 
 import (
 	"errors"
+	"github.com/Pr3c10us/absolutego/internals/domains/script"
+	scriptService "github.com/Pr3c10us/absolutego/internals/services/script/commands"
 
 	"github.com/Pr3c10us/absolutego/internals/domains/book"
 	"github.com/Pr3c10us/absolutego/internals/domains/storage"
@@ -11,6 +13,8 @@ import (
 type DeleteChapter struct {
 	bookImplementation    book.Interface
 	storageImplementation storage.Interface
+	scriptImplementation  script.Interface
+	deleteScript          *scriptService.DeleteScript
 }
 
 func (s *DeleteChapter) Handle(chapterId int64) error {
@@ -20,6 +24,19 @@ func (s *DeleteChapter) Handle(chapterId int64) error {
 	}
 	if ch == nil {
 		return appError.BadRequest(errors.New("chapter does not exist"))
+	}
+
+	scrips, err := s.scriptImplementation.GetScripts(script.Query{
+		Chapter: ch.Number,
+	})
+	if err != nil {
+		return err
+	}
+	for _, scr := range scrips {
+		err = s.deleteScript.Handle(scr.Id)
+		if err != nil {
+			return err
+		}
 	}
 
 	pages, err := s.bookImplementation.GetPages([]int64{ch.Id}, false)
@@ -70,9 +87,11 @@ func (s *DeleteChapter) Handle(chapterId int64) error {
 	return nil
 }
 
-func NewDeleteChapter(bookImplementation book.Interface, storageImplementation storage.Interface) *DeleteChapter {
+func NewDeleteChapter(bookImplementation book.Interface, storageImplementation storage.Interface, scriptImplementation script.Interface) *DeleteChapter {
 	return &DeleteChapter{
 		bookImplementation:    bookImplementation,
 		storageImplementation: storageImplementation,
+		scriptImplementation:  scriptImplementation,
+		deleteScript:          scriptService.NewDeleteScript(scriptImplementation),
 	}
 }

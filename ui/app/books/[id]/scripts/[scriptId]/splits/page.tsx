@@ -353,7 +353,8 @@ export default function SplitsPage() {
     const bookId = Number(params.id);
     const scriptId = Number(params.scriptId);
     const queryClient = useQueryClient();
-    const { generateSplitsTask } = useUpload();
+    const { generateSplitsTask, isSplitGenerating } = useUpload();
+    const splitInProgress = isSplitGenerating(scriptId);
 
     // -- state
     const [confirmClear, setConfirmClear] = useState(false);
@@ -533,20 +534,29 @@ export default function SplitsPage() {
                                     </Button>
                                     <Button
                                         onClick={() => generateSplitsTask(scriptId, scriptName)}
+                                        disabled={splitInProgress}
                                         className="gap-1.5"
                                     >
-                                        {RefreshIcon}
-                                        Regenerate
+                                        {splitInProgress ? (
+                                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-background/30 border-t-background" />
+                                        ) : (
+                                            RefreshIcon
+                                        )}
+                                        {splitInProgress ? "Generating…" : "Regenerate"}
                                     </Button>
                                 </>
                             ) : (
                                 <Button
                                     onClick={() => generateSplitsTask(scriptId, scriptName)}
-                                    disabled={isLoading}
+                                    disabled={isLoading || splitInProgress}
                                     className="gap-1.5"
                                 >
-                                    {SparklesIcon}
-                                    Generate Splits
+                                    {splitInProgress ? (
+                                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-background/30 border-t-background" />
+                                    ) : (
+                                        SparklesIcon
+                                    )}
+                                    {splitInProgress ? "Generating…" : "Generate Splits"}
                                 </Button>
                             )}
                         </div>

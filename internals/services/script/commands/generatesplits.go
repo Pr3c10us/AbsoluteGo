@@ -69,12 +69,12 @@ func (s *GenerateSplits) Handle(scriptId int64) error {
 		return err
 	}
 
-	pageMap := make(map[int]*book.Page, len(pages))
+	pageMap := make(map[string]*book.Page, len(pages))
 	for i := range pages {
-		pageMap[pages[i].PageNumber] = &pages[i]
+		key := fmt.Sprintf("%d-%d", pages[i].Chapter.Number, pages[i].PageNumber)
+		pageMap[key] = &pages[i]
 	}
 
-	// Track splits by page-panel key, storing the index of first occurrence
 	type splitGroup struct {
 		index   int
 		content string
@@ -86,18 +86,15 @@ func (s *GenerateSplits) Handle(scriptId int64) error {
 	orderedKeys := make([]string, 0, len(splitResult))
 
 	for i, result := range splitResult {
-		p := pageMap[result.Page]
+		key := fmt.Sprintf("%d-%d", result.Chapter, result.Page)
+		p := pageMap[key]
 		if p == nil || len(p.Panels) == 0 {
 			continue
 		}
-
-		key := fmt.Sprintf("%d-%d", result.Page, result.Panel)
-
+		
 		if existing, exists := splitMap[key]; exists {
-			// Merge content with existing
 			existing.content = existing.content + "\n" + result.Script
 		} else {
-			// New entry - store it
 			panelId := resolvePanelId(p.Panels, result.Panel)
 			splitMap[key] = &splitGroup{
 				index:   i,
@@ -109,7 +106,6 @@ func (s *GenerateSplits) Handle(scriptId int64) error {
 		}
 	}
 
-	// Build splits in original order
 	splits := make([]script.Split, 0, len(splitMap))
 	for _, key := range orderedKeys {
 		group := splitMap[key]

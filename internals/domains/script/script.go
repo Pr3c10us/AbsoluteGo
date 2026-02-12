@@ -10,6 +10,13 @@ type Script struct {
 	Chapters []int   `json:"chapters"`
 }
 
+type Query struct {
+	BookId  int64
+	Name    string
+	Ids     []int64
+	Chapter int
+}
+
 type Split struct {
 	Id       int64      `json:"id"`
 	ScriptId int64      `json:"scriptId"`

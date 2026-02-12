@@ -23,6 +23,7 @@ type Page struct {
 	PageNumber int       `json:"pageNumber"`
 	UpdatedAt  time.Time `json:"updatedAt"`
 	Panels     []Panel   `json:"panels"`
+	Chapter    Chapter   `json:"chapter"`
 }
 
 type Panel struct {

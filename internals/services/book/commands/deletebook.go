@@ -2,8 +2,8 @@ package commands
 
 import (
 	"errors"
-
 	"github.com/Pr3c10us/absolutego/internals/domains/book"
+	"github.com/Pr3c10us/absolutego/internals/domains/script"
 	"github.com/Pr3c10us/absolutego/internals/domains/storage"
 	"github.com/Pr3c10us/absolutego/packages/appError"
 )
@@ -11,6 +11,7 @@ import (
 type DeleteBook struct {
 	bookImplementation    book.Interface
 	storageImplementation storage.Interface
+	scriptImplementation  script.Interface
 	deleteChapter         *DeleteChapter
 }
 
@@ -39,10 +40,10 @@ func (s *DeleteBook) Handle(bookId int64) error {
 	return err
 }
 
-func NewDeleteBook(bookImplementation book.Interface, storageImplementation storage.Interface) *DeleteBook {
+func NewDeleteBook(bookImplementation book.Interface, storageImplementation storage.Interface, scriptImplementation script.Interface) *DeleteBook {
 	return &DeleteBook{
 		bookImplementation:    bookImplementation,
 		storageImplementation: storageImplementation,
-		deleteChapter:         NewDeleteChapter(bookImplementation, storageImplementation),
+		deleteChapter:         NewDeleteChapter(bookImplementation, storageImplementation, scriptImplementation),
 	}
 }

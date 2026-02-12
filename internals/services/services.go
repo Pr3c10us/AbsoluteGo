@@ -13,7 +13,7 @@ type Services struct {
 
 func NewServices(adapters *adapters.Adapters) *Services {
 	return &Services{
-		BookServices:   book.NewBookServices(adapters.BookImplementation, adapters.StorageRepository, adapters.AiImplementation, adapters.EnvironmentVariables),
+		BookServices:   book.NewBookServices(adapters.BookImplementation, adapters.StorageRepository, adapters.AiImplementation, adapters.EnvironmentVariables, adapters.ScriptImplementation),
 		ScriptServices: script.NewScriptServices(adapters.ScriptImplementation, adapters.BookImplementation, adapters.AiImplementation),
 	}
 }

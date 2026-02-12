@@ -7,10 +7,11 @@ import (
 )
 
 type SplitScriptResult struct {
-	Page   int    `json:"page"`
-	Script string `json:"script"`
-	Panel  int    `json:"panel"`
-	Effect string `json:"effect"`
+	Chapter int    `json:"chapter"` // NEW: Chapter number from bottom right
+	Page    int    `json:"page"`    // Page number within the chapter
+	Script  string `json:"script"`
+	Panel   int    `json:"panel"`
+	Effect  string `json:"effect"`
 }
 
 func ParseSplitScriptResponse(raw string) ([]SplitScriptResult, error) {
@@ -56,6 +57,9 @@ func validateResults(results []SplitScriptResult) error {
 	}
 
 	for i, r := range results {
+		if r.Chapter < 1 {
+			return fmt.Errorf("entry %d: invalid chapter number %d", i, r.Chapter)
+		}
 		if r.Page < 1 {
 			return fmt.Errorf("entry %d: invalid page number %d", i, r.Page)
 		}
@@ -75,31 +79,44 @@ func validateResults(results []SplitScriptResult) error {
 
 func SplitScriptPrompt(script string) string {
 	return fmt.Sprintf(`
-# SCRIPT-TO-PAGE-AND-PANEL ALIGNMENT MAPPER
+# SCRIPT-TO-CHAPTER-PAGE-PANEL ALIGNMENT MAPPER
 
-You are a script editor specializing in synchronizing audio drama scripts with their source comic book pages and panels. Your task is to split the provided TTS script into segments, match each segment to the appropriate comic page, and then assign each segment to specific panels with motion effects.
+You are a script editor specializing in synchronizing audio drama scripts with their source comic book pages and panels. Your task is to split the provided TTS script into segments, match each segment to the appropriate **chapter and page**, and then assign each segment to specific panels with motion effects.
 
 ---
 
 ## INPUT
 
 You will receive:
-1. **Comic book pages** (as images) — panels within each page are labeled with numbers
-2. **A complete TTS audio drama script** (as text)
+1. **Comic book pages** (as images) — panels within each page are labeled with numbers. Each image displays **Chapter X Page Y** at the bottom right.
+2. **A complete TTS audio drama script** (as text) — potentially spanning multiple chapters
+
+---
+
+## CRITICAL: CHAPTER AND PAGE IDENTIFICATION
+
+**Each page now displays BOTH the Chapter number and Page number at the bottom right** (e.g., "Chapter 1 Page 2", "Chapter 2 Page 5", "Ch. 1 P. 2", or similar formatting).
+
+- **Extract BOTH values:** The Chapter number AND the Page number from every page
+- **Chapter** identifies which chapter the page belongs to (Chapter 1, Chapter 2, etc.)
+- **Page** identifies the sequential page number within that specific chapter only
+- **Multiple chapters:** If you see pages with the same page number but different chapter numbers (e.g., Chapter 1 Page 2 vs Chapter 2 Page 2), treat them as completely distinct pages
+- Ignore any other numbers on the page (issue numbers, volume numbers, panel counts, watermarks)
+- If a page has no visible chapter/page identifier at bottom right, skip that page
 
 ---
 
 ## YOUR TASK (TWO-PHASE PROCESS)
 
-### Phase 1: Page-Level Splitting
-1. **Analyze** each comic page and identify the bold page number in the bottom right corner
-2. **Read** the complete script and identify natural breakpoints
-3. **Match** each script segment to the page that best represents its content
+### Phase 1: Chapter-Page-Level Splitting
+1. **Analyze** each comic page and extract the **Chapter** and **Page** numbers from the bottom right corner
+2. **Read** the complete script and identify natural breakpoints between chapters and within chapters
+3. **Match** each script segment to the specific chapter and page that best represents its content
 
 ### Phase 2: Panel-Level Assignment
 4. **Determine the visual reading order** of panels on each page (see Panel Reading Order section)
 5. **Analyze** each panel's shape on the assigned page (horizontal, vertical, or square)
-6. **Further split** the page-level segment into panel-level pieces
+6. **Further split** the chapter-page-level segment into panel-level pieces
 7. **Assign** each piece to a specific labeled panel following visual reading order
 8. **Select** a valid motion effect based on panel shape
 
@@ -107,13 +124,14 @@ You will receive:
 
 ## PREAMBLE ASSIGNMENT (COVER PAGES)
 
-The script may begin with a **preamble** — an introductory section that includes the hook, context bridge, or any narration that occurs **before the actual chapter events begin**. This preamble does not correspond to any story panel.
+The script may contain **preambles** — introductory sections for each chapter that include hooks, context bridges, or narration occurring **before the actual chapter events begin**. 
 
 **Rules for preamble segments:**
-- Assign preamble segments to **cover pages, title pages, or splash pages** (the pages that would otherwise be skipped).
-- A preamble segment is any part of the script that comes before the narration starts describing actual panel-by-panel chapter events — typically the hook (Section A) and the context bridge (Section B).
-- Use the **first available cover/title/splash page** for preamble assignment. If there are multiple such pages, you may spread the preamble across them.
-- Once the script transitions into describing actual chapter events (the body), stop using cover pages and switch to story pages with panels.
+- Assign preamble segments to **cover pages, title pages, or splash pages of the matching chapter**
+- Each chapter typically has its own cover/title page appearing before Page 1 of that chapter
+- A preamble segment comes before the narration starts describing actual panel-by-panel events for that specific chapter
+- Use the **first available cover/title/splash page of the correct chapter** for preamble assignment
+- Once the script transitions into describing actual chapter events (the body), stop using cover pages and switch to story pages with panels
 
 ---
 
@@ -121,14 +139,14 @@ The script may begin with a **preamble** — an introductory section that includ
 
 **CRITICAL:** The following non-story pages must NEVER be assigned **body script segments**. They may ONLY be used for preamble segments as described above:
 
-- Cover pages and variant covers
+- Cover pages and variant covers (per chapter)
 - Chapter title pages or section dividers
 - Splash pages with only the comic title/logo
 
 The following pages must NEVER be used at all — not even for preamble:
 
 - Credits pages and legal/copyright pages
-- "Previously on..." recap pages
+- "Previously on..." recap pages (unless assigning preamble for that chapter)
 - Letters to the editor or fan mail sections
 - Advertisements or promotional pages
 - Blank pages or placeholder pages
@@ -140,22 +158,13 @@ Only assign **body script segments** to pages that contain actual story panels w
 
 ---
 
-## PAGE NUMBER IDENTIFICATION
-
-**CRITICAL:** Use ONLY the bold number located at the bottom right of each page.
-
-- Ignore any other numbers on the page (issue numbers, chapter numbers, panel counts, watermarks)
-- The page number is typically bold, often standalone, positioned at the bottom right margin
-- If a page has no visible bold number at bottom right, skip that page
-
----
-
 ## PAGE-LEVEL SPLITTING GUIDELINES
 
 ### Natural Breakpoints for Page Splits
 
 Split the script at these logical points:
-- Scene/location transitions
+- Chapter transitions (new chapter headers in script)
+- Scene/location transitions within chapters
 - Significant time jumps
 - Perspective shifts between characters
 - Major dramatic beats or reveals
@@ -163,7 +172,7 @@ Split the script at these logical points:
 
 ### Page Matching Logic
 
-Match each script segment to the page that:
+Match each script segment to the chapter-page combination that:
 - Contains the primary visual action described in that segment
 - Shows the character(s) speaking in that segment
 - Best captures the emotional tone of that segment
@@ -172,7 +181,7 @@ Match each script segment to the page that:
 ### Flexible Page Mapping Rules
 
 - **Omitting pages is allowed:** If a page is purely visual with no narrative equivalent, skip it
-- **Repeating pages is allowed:** If a page contains multiple distinct moments, it may appear multiple times
+- **Repeating pages is allowed:** If a page contains multiple distinct moments, it may appear multiple times (distinguished by chapter-page combo)
 - **Dialogue-heavy segments:** Match to the page showing that conversation
 - **Action sequences:** May span multiple segments on the same page
 
@@ -264,51 +273,53 @@ If the page has multiple panels, **distribute the script across them**. Do not s
 ### Effect Definitions
 | Effect | Description |
 |--------|-------------|
-| `+"`zoomIn`"+` | Slowly zoom toward center |
-| `+"`zoomOut`"+` | Start zoomed in, pull back |
-| `+"`panLeft`"+` | Camera moves left (horizontal panels only) |
-| `+"`panRight`"+` | Camera moves right (horizontal panels only) |
-| `+"`panUp`"+` | Camera moves up (vertical panels only) |
-| `+"`panDown`"+` | Camera moves down (vertical panels only) |
+| +"zoomIn"+ | Slowly zoom toward center |
+| +"zoomOut"+ | Start zoomed in, pull back |
+| +"panLeft"+ | Camera moves left (horizontal panels only) |
+| +"panRight"+ | Camera moves right (horizontal panels only) |
+| +"panUp"+ | Camera moves up (vertical panels only) |
+| +"panDown"+ | Camera moves down (vertical panels only) |
 
-## PANEL-LEVEL SCRIPT SPLITTING
+	## PANEL-LEVEL SCRIPT SPLITTING
 
-Split at natural breakpoints:
-- Between narration and dialogue
-- Between different actions or beats
-- Between scene descriptions and character focus
-- At emotional shifts or dramatic pauses
+	Split at natural breakpoints:
+	- Between narration and dialogue
+	- Between different actions or beats
+	- Between scene descriptions and character focus
+	- At emotional shifts or dramatic pauses
 
-**Do NOT split mid-sentence** unless there's a clear dramatic pause.
+	**Do NOT split mid-sentence** unless there's a clear dramatic pause.
 
-Each segment should be substantial enough to accompany a panel (typically 1-5 lines).
+	Each segment should be substantial enough to accompany a panel (typically 1-5 lines).
 
----
+	---
 
-## OUTPUT FORMAT
+	## OUTPUT FORMAT
 
-Output ONLY a valid JSON array. No Markdown code fences. No commentary.
+	Output ONLY a valid JSON array. No Markdown code fences. No commentary.
 
-`+"```"+`
+	`+"```"+`
 [
-  {
-    "page": <integer: the bold number at bottom right of page>,
-    "script": "<string: the script segment for this panel>",
-    "panel": <integer: panel label number from image>,
-    "effect": "<string: valid effect for panel shape>"
-  }
+{
+"chapter": <integer: chapter number from bottom right>,
+"page": <integer: page number within that chapter>,
+"script": "<string: the script segment for this panel>",
+"panel": <integer: panel label number from image>,
+"effect": "<string: valid effect for panel shape>"
+}
 ]
 `+"```"+`
 
 ### JSON Formatting Rules
 
-- `+"`page`"+` must be an integer (the bold number from bottom right)
+- `+"`chapter`"+` must be an integer (the chapter number from bottom right of the page)
+- `+"`page`"+` must be an integer (the page number within that chapter from bottom right)
 - `+"`script`"+` must be a string containing the exact script segment including all delivery tags and break tags
 - `+"`panel`"+` must be an integer matching a labeled panel on that page (use the label number, but assign in visual reading order)
 - `+"`effect`"+` must be a valid effect string for the panel's shape
 - Preserve all formatting within the script string: `+"`[tags]`"+`, `+"`<break time=\"Xs\" />`"+`, quotation marks
 - Escape internal quotes properly for valid JSON
-- Maintain the chronological order of the story
+- Maintain the chronological order of the story across chapters (Chapter 1 → Chapter 2 → etc.)
 
 ---
 
@@ -318,34 +329,53 @@ Note: In this example, the visual reading order was determined to be Panel 2 →
 
 [
   {
+    "chapter": 1,
     "page": 1,
     "script": "The nightmare begins in red light.",
     "panel": 2,
     "effect": "zoomIn"
   },
   {
+    "chapter": 1,
     "page": 1,
     "script": "A boy pounds on a door, screaming for his father,",
     "panel": 1,
     "effect": "panRight"
   },
   {
+    "chapter": 1,
     "page": 1,
     "script": "but the man on the other side will never answer.",
     "panel": 3,
     "effect": "panUp"
   },
   {
+    "chapter": 1,
     "page": 3,
     "script": "Bats swarm from the darkness, consuming everything.",
     "panel": 1,
     "effect": "panRight"
   },
   {
+    "chapter": 1,
     "page": 3,
     "script": "Then he wakes.",
     "panel": 2,
     "effect": "zoomOut"
+  },
+  {
+    "chapter": 2,
+    "page": 1,
+    "script": "A new chapter begins. The sun rises over Gotham.",
+    "panel": 1,
+    "effect": "panUp"
+  },
+  {
+    "chapter": 2,
+    "page": 2,
+    "script": "Commissioner Gordon lights his pipe.",
+    "panel": 1,
+    "effect": "zoomIn"
   }
 ]
 
@@ -355,11 +385,13 @@ Note: In this example, the visual reading order was determined to be Panel 2 →
 
 Before outputting, verify:
 
-### Page-Level Validation
-- [ ] Every `+"`page`"+` value corresponds to an actual bold number at bottom right of a comic page
-- [ ] No non-story pages are included (covers, credits, ads, title pages, etc.)
+### Chapter-Page-Level Validation
+- [ ] Every entry has both `+"`chapter`"+` and `+"`page`"+` values extracted from the bottom right corner
+- [ ] Chapter numbers increment correctly (1, 2, 3, etc.) when the script transitions between chapters
+- [ ] Page numbers reset to 1 (or start at 1) for each new chapter
+- [ ] No non-story pages are included (covers, credits, ads, title pages, etc.) for body content
 - [ ] The full script is represented—no content is lost
-- [ ] Script segments appear in correct story order
+- [ ] Script segments appear in correct story order (Chapter 1 all pages → Chapter 2 all pages → etc.)
 
 ### Panel-Level Validation
 - [ ] Did I determine the VISUAL reading order for each page (not just follow label numbers)?
@@ -377,15 +409,18 @@ Before outputting, verify:
 ### JSON Validation
 - [ ] The JSON is syntactically valid
 - [ ] No text exists outside the JSON array
+- [ ] All chapter and page combinations reference actual pages seen in the input images
 
 ---
 
 ## HARD RULES (WILL CAUSE REJECTION IF VIOLATED)
 
-### Page Selection Rules
-✅ **ALWAYS** assign preamble/hook/context bridge segments to cover pages, title pages, or splash pages
+### Chapter-Page Selection Rules
+✅ **ALWAYS** extract BOTH chapter and page numbers from bottom right of every page
+✅ **ALWAYS** assign preamble/hook/context bridge segments to cover pages of the **matching chapter**
 🚫 **NEVER** assign body script segments to cover pages, title pages, or splash pages
 🚫 **NEVER** assign any script to credits pages, advertisements, or other non-visual pages (see "Pages to Skip" section)
+🚫 **NEVER** treat Chapter 1 Page 2 and Chapter 2 Page 2 as the same page—they are distinct
 
 ### Effect Rules
 🚫 **NEVER** use `+"`zoomIn`"+` or `+"`zoomOut`"+` on a horizontal panel
@@ -403,6 +438,7 @@ Before outputting, verify:
 ### Content Rules
 🚫 **NEVER** drop or lose any script content
 🚫 **NEVER** reorder the chronological sequence of the script
+🚫 **NEVER** confuse pages with identical numbers from different chapters
 
 ---
 
@@ -411,7 +447,7 @@ Before outputting, verify:
 **CRITICAL: Output the JSON array ONLY.**
 
 - Do NOT include any preamble, commentary, or explanation
-- Do NOT wrap the JSON in Markdown code fences (no `+"``````"+`)
+- Do NOT wrap the JSON in Markdown code fences (no `+"``````"+` )
 - Do NOT add phrases like "Here is the JSON" or "I've split..."
 - Do NOT include notes about your matching decisions
 - Do NOT list panel shapes or reading order analysis before the JSON
@@ -428,6 +464,6 @@ Your entire response must be valid JSON and nothing else.
 **COMPLETE TTS AUDIO DRAMA SCRIPT:**
 %s
 
-**COMIC PAGES:** Provided as images with labeled panels
+**COMIC PAGES:** Provided as images with labeled panels. Each image displays Chapter X Page Y at the bottom right corner.
 `, script)
 }

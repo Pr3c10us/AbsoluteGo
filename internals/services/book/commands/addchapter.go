@@ -3,6 +3,7 @@ package commands
 import (
 	"errors"
 	"fmt"
+	"github.com/Pr3c10us/absolutego/internals/domains/script"
 	"mime"
 	"os"
 	"path/filepath"
@@ -81,7 +82,7 @@ func (s *AddChapter) Handle(p Parameter) error {
 	}
 	defer os.RemoveAll(outputDir)
 
-	if err = s.processFile(outputDir, p.File); err != nil {
+	if err = s.processFile(outputDir, p.File, p.Chapter); err != nil {
 		return err
 	}
 
@@ -135,7 +136,7 @@ func (s *AddChapter) Handle(p Parameter) error {
 	return nil
 }
 
-func (s *AddChapter) processFile(outputDir, filePath string) error {
+func (s *AddChapter) processFile(outputDir, filePath string, chapter int) error {
 	format, err := utils.GetComicFormat(filePath)
 	if err != nil {
 		return err
@@ -189,7 +190,7 @@ func (s *AddChapter) processFile(outputDir, filePath string) error {
 	}
 
 	return utils.RunWorkerPool(jobs, maxWorkers, func(j overlayJob) error {
-		return utils.AddPageNumberToOverlay(j.path, j.pageNum)
+		return utils.AddPageNumberToOverlay(j.path, j.pageNum, chapter)
 	})
 }
 
@@ -386,6 +387,6 @@ func (s *AddChapter) processPanel(panelDir string, pageId int64, tracker *upload
 	return panels, nil
 }
 
-func NewAddChapter(b book.Interface, st storage.Interface, a ai.Interface, env *configs.EnvironmentVariables) *AddChapter {
-	return &AddChapter{b, st, a, env, NewDeleteChapter(b, st)}
+func NewAddChapter(b book.Interface, st storage.Interface, a ai.Interface, env *configs.EnvironmentVariables, scriptImplementation script.Interface) *AddChapter {
+	return &AddChapter{b, st, a, env, NewDeleteChapter(b, st, scriptImplementation)}
 }
