@@ -33,8 +33,8 @@ func DefaultProcessOptions() ProcessOptions {
 		MaxAreaRatio:        0,
 		EdgeMargin:          0,
 		OCRConfidenceThresh: 0,
-		OCRMinConfidence:    50,
-		OCRMinChars:         1,
+		OCRMinConfidence:    70,
+		OCRMinChars:         10,
 		OCRMinCharDensity:   0.3,
 		OCRLangs:            "eng",
 	}

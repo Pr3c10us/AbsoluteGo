@@ -3,7 +3,7 @@
 import { memo, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import {
     fetchBooks,
     fetchChapters,
@@ -101,6 +101,55 @@ const PagesEmptyIcon = (
     >
         <rect x="2" y="3" width="20" height="18" rx="2" />
         <line x1="8" x2="8" y1="3" y2="21" />
+    </svg>
+);
+
+const LayersIcon = (
+    <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    >
+        <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.84Z" />
+        <path d="m2 12 8.59 3.91a2 2 0 0 0 1.66 0L21 12" />
+        <path d="m2 17 8.59 3.91a2 2 0 0 0 1.66 0L21 17" />
+    </svg>
+);
+
+const FileIcon = (
+    <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    >
+        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+        <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+    </svg>
+);
+
+const PanelsEmptyIcon = (
+    <svg
+        className="mx-auto mb-3 h-10 w-10 text-neutral-300"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    >
+        <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.84Z" />
+        <path d="m2 12 8.59 3.91a2 2 0 0 0 1.66 0L21 12" />
+        <path d="m2 17 8.59 3.91a2 2 0 0 0 1.66 0L21 17" />
     </svg>
 );
 
@@ -366,6 +415,135 @@ const PagesListContent = memo(function PagesListContent({
     );
 });
 
+// ── Panel card (for all-panels view) ─────────────────────────────────────────
+
+interface PanelWithPage extends Panel {
+    pageNumber: number;
+}
+
+const AllPanelCard = memo(function AllPanelCard({
+    panel,
+    index,
+    onViewBig,
+}: {
+    panel: PanelWithPage;
+    index: number;
+    onViewBig: (index: number) => void;
+}) {
+    return (
+        <li className="group relative overflow-hidden rounded-[6px_8px_7px_5px] border border-border shadow-[3px_5px_14px_rgba(0,0,0,0.06)] transition-all duration-300 hover:shadow-[4px_7px_24px_rgba(0,0,0,0.15)] hover:-translate-y-0.5 animate-in fade-in-0 zoom-in-95">
+            <div className="relative overflow-hidden bg-neutral-50">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                    src={panel.url}
+                    alt={`Panel ${panel.panelNumber}`}
+                    className="block w-full transition-transform duration-500 group-hover:scale-[1.02]"
+                />
+                {/* Hover overlay */}
+                <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/40 group-hover:opacity-100">
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => onViewBig(index)}
+                        className="gap-1.5 bg-white text-black shadow-lg hover:bg-neutral-100"
+                    >
+                        {ExpandIcon}
+                        View
+                    </Button>
+                </div>
+            </div>
+            {/* Info footer */}
+            <div className="flex items-center justify-between px-3 py-2">
+                <div>
+                    <span className="block text-sm font-bold leading-none tracking-tight">
+                        P{panel.panelNumber}
+                    </span>
+                    <span className="block text-[9px] font-medium uppercase tracking-[0.25em] text-muted-foreground">
+                        Page {String(panel.pageNumber).padStart(2, "0")}
+                    </span>
+                </div>
+                <span className="rounded-[3px_5px_4px_3px] bg-foreground/5 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                    ID {panel.id}
+                </span>
+            </div>
+        </li>
+    );
+});
+
+// ── All panels list content ──────────────────────────────────────────────────
+
+const AllPanelsListContent = memo(function AllPanelsListContent({
+    pages,
+    pagesLoading,
+    onViewBig,
+}: {
+    pages: Page[];
+    pagesLoading: boolean;
+    onViewBig: (index: number) => void;
+}) {
+    // Fetch panels for every page in parallel
+    const panelQueries = useQueries({
+        queries: pages.map((p) => ({
+            queryKey: ["panels", p.id] as const,
+            queryFn: () => fetchPanels(p.id),
+        })),
+    });
+
+    const isLoading = pagesLoading || panelQueries.some((q) => q.isLoading);
+    const hasError = panelQueries.some((q) => q.error);
+
+    // Aggregate all panels with page context
+    // Derive a stable key from query data to avoid variable-length deps
+    const panelDataKey = panelQueries.map((q) => q.dataUpdatedAt).join(",");
+    const allPanels: PanelWithPage[] = useMemo(
+        () =>
+            pages.flatMap((page, i) => {
+                const panels: Panel[] = panelQueries[i]?.data?.data?.panels ?? [];
+                return panels.map((p) => ({ ...p, pageNumber: page.pageNumber }));
+            }),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [pages, panelDataKey]
+    );
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-border border-t-foreground" />
+                Loading panels…
+            </div>
+        );
+    }
+
+    if (hasError) {
+        return (
+            <div className="py-8 text-center text-sm font-medium text-foreground">
+                Failed to load some panels — please try again.
+            </div>
+        );
+    }
+
+    return allPanels.length === 0 ? (
+        <div className="py-12 text-center text-muted-foreground">
+            {PanelsEmptyIcon}
+            <p className="text-sm font-medium text-foreground">No panels found.</p>
+            <span className="text-xs">
+                Pages haven&apos;t been segmented into panels yet.
+            </span>
+        </div>
+    ) : (
+        <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {allPanels.map((panel, idx) => (
+                <AllPanelCard
+                    key={panel.id}
+                    panel={panel}
+                    index={idx}
+                    onViewBig={onViewBig}
+                />
+            ))}
+        </ul>
+    );
+});
+
 // ── Main page ───────────────────────────────────────────────────────────────
 
 export default function ChapterDetailPage() {
@@ -373,7 +551,11 @@ export default function ChapterDetailPage() {
     const bookId = Number(params.id);
     const chapterId = Number(params.chapterId);
 
-    // -- panel viewer state
+    // -- view toggle: "pages" | "panels"
+    type ViewMode = "pages" | "panels";
+    const [viewMode, setViewMode] = useState<ViewMode>("pages");
+
+    // -- panel viewer state (page-specific overlay)
     const [viewingPage, setViewingPage] = useState<Page | null>(null);
     const handleViewPanels = useCallback(
         (page: Page) => setViewingPage(page),
@@ -384,6 +566,10 @@ export default function ChapterDetailPage() {
     // -- page lightbox state
     const [pageLightboxIdx, setPageLightboxIdx] = useState<number | null>(null);
     const closePageLightbox = useCallback(() => setPageLightboxIdx(null), []);
+
+    // -- all-panels lightbox state
+    const [panelLightboxIdx, setPanelLightboxIdx] = useState<number | null>(null);
+    const closePanelLightbox = useCallback(() => setPanelLightboxIdx(null), []);
 
     // -- fetch book info
     const { data: booksData } = useQuery({
@@ -429,6 +615,29 @@ export default function ChapterDetailPage() {
         [pages]
     );
 
+    // -- fetch all panels for all-panels lightbox (parallel queries)
+    const allPanelQueries = useQueries({
+        queries: pages.map((p) => ({
+            queryKey: ["panels", p.id] as const,
+            queryFn: () => fetchPanels(p.id),
+            enabled: viewMode === "panels",
+        })),
+    });
+
+    const allPanelDataKey = allPanelQueries.map((q) => q.dataUpdatedAt).join(",");
+    const allPanelLightboxItems: LightboxItem[] = useMemo(
+        () =>
+            pages.flatMap((page, i) => {
+                const panels: Panel[] = allPanelQueries[i]?.data?.data?.panels ?? [];
+                return panels.map((p) => ({
+                    url: p.url,
+                    label: `P${p.panelNumber} — Page ${page.pageNumber}`,
+                }));
+            }),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [pages, allPanelDataKey]
+    );
+
     return (
         <>
             {/* ── Page lightbox ── */}
@@ -441,7 +650,17 @@ export default function ChapterDetailPage() {
                 />
             ) : null}
 
-            {/* ── Panel viewer overlay ── */}
+            {/* ── All-panels lightbox ── */}
+            {panelLightboxIdx !== null ? (
+                <Lightbox
+                    items={allPanelLightboxItems}
+                    currentIndex={panelLightboxIdx}
+                    onIndexChange={setPanelLightboxIdx}
+                    onClose={closePanelLightbox}
+                />
+            ) : null}
+
+            {/* ── Panel viewer overlay (single page) ── */}
             {viewingPage !== null ? (
                 <PanelViewer page={viewingPage} onClose={closePanelViewer} />
             ) : null}
@@ -461,30 +680,64 @@ export default function ChapterDetailPage() {
                     </h1>
                     {HeroUnderline}
                     <span className="mt-4 block text-[11px] font-medium uppercase tracking-[0.3em] text-muted-foreground">
-                        PAGE VIEWER
+                        {viewMode === "pages" ? "PAGE VIEWER" : "PANEL VIEWER"}
                     </span>
                 </header>
 
-                {/* ── Pages Gallery ─────────────────────────────────────────── */}
+                {/* ── Gallery section ───────────────────────────────────────── */}
                 <section className="border-t border-border pt-8">
                     <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
                         <h2 className="flex items-center gap-2.5 text-2xl font-semibold tracking-tight">
-                            Pages
+                            {viewMode === "pages" ? "Pages" : "Panels"}
                             {pages.length > 0 ? (
                                 <span className="rounded-[4px_6px_5px_3px] bg-foreground px-2 py-0.5 text-xs font-medium text-background">
                                     {pages.length}
                                 </span>
                             ) : null}
                         </h2>
+
+                        {/* ── Segmented toggle ── */}
+                        <div className="inline-flex items-center rounded-[5px_7px_6px_4px] border border-border bg-neutral-50 p-0.5">
+                            <button
+                                onClick={() => setViewMode("pages")}
+                                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-[4px_6px_5px_3px] px-3 py-1.5 text-xs font-medium transition-all ${
+                                    viewMode === "pages"
+                                        ? "bg-foreground text-background shadow-sm"
+                                        : "text-muted-foreground hover:text-foreground"
+                                }`}
+                            >
+                                {FileIcon}
+                                Pages
+                            </button>
+                            <button
+                                onClick={() => setViewMode("panels")}
+                                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-[4px_6px_5px_3px] px-3 py-1.5 text-xs font-medium transition-all ${
+                                    viewMode === "panels"
+                                        ? "bg-foreground text-background shadow-sm"
+                                        : "text-muted-foreground hover:text-foreground"
+                                }`}
+                            >
+                                {LayersIcon}
+                                Panels
+                            </button>
+                        </div>
                     </div>
 
-                    <PagesListContent
-                        isLoading={isLoading}
-                        fetchError={fetchError}
-                        pages={pages}
-                        onViewPanels={handleViewPanels}
-                        onViewBig={setPageLightboxIdx}
-                    />
+                    {viewMode === "pages" ? (
+                        <PagesListContent
+                            isLoading={isLoading}
+                            fetchError={fetchError}
+                            pages={pages}
+                            onViewPanels={handleViewPanels}
+                            onViewBig={setPageLightboxIdx}
+                        />
+                    ) : (
+                        <AllPanelsListContent
+                            pages={pages}
+                            pagesLoading={isLoading}
+                            onViewBig={setPanelLightboxIdx}
+                        />
+                    )}
                 </section>
             </div>
         </>
