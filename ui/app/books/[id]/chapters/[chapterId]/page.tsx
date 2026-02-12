@@ -16,6 +16,7 @@ import {
     type Panel,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 import Lightbox, { type LightboxItem } from "@/components/lightbox";
 
 // ── Static SVG icons (hoisted — rendering-hoist-jsx) ────────────────────────
@@ -127,6 +128,8 @@ const PanelViewer = memo(function PanelViewer({
     page: Page;
     onClose: () => void;
 }) {
+    useScrollLock();
+
     const { data, isLoading, error } = useQuery({
         queryKey: ["panels", page.id],
         queryFn: () => fetchPanels(page.id),

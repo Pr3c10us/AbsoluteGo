@@ -16,6 +16,7 @@ import {
     type Script,
 } from "@/lib/api";
 import { useUpload } from "@/lib/upload-context";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -177,6 +178,8 @@ const ScriptViewer = memo(function ScriptViewer({
     script: Script;
     onClose: () => void;
 }) {
+    useScrollLock();
+
     const CloseIcon = (
         <svg
             width="16"

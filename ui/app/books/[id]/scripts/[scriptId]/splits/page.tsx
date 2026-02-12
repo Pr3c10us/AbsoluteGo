@@ -16,6 +16,7 @@ import {
     type Split,
 } from "@/lib/api";
 import { useUpload } from "@/lib/upload-context";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 import { Button } from "@/components/ui/button";
 import Lightbox, { type LightboxItem } from "@/components/lightbox";
 import {
@@ -197,6 +198,8 @@ const ScriptViewer = memo(function ScriptViewer({
     script: Script;
     onClose: () => void;
 }) {
+    useScrollLock();
+
     return (
         <div className="fixed inset-0 z-40 flex flex-col bg-white">
             <div className="flex items-center justify-between border-b border-border px-6 py-3">
@@ -413,6 +416,8 @@ export default function SplitsPage() {
                 .map((s, i) => ({
                     url: s.panel.url,
                     label: `Split ${String(i + 1).padStart(2, "0")} — P${s.panel.panelNumber}`,
+                    description: s.content,
+                    tag: EFFECT_LABELS[s.effect] ?? s.effect,
                 })),
         [splits]
     );
