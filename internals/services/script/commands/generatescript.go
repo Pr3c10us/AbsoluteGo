@@ -22,27 +22,33 @@ type GenerateScript struct {
 }
 
 type GenerateScriptParameters struct {
-	BookId          int64
-	Name            string
-	Chapters        []int
+	ScriptId        int64
 	PreviousScripts []int64
 }
 
-func (s *GenerateScript) Handle(parameters GenerateScriptParameters) (string, int64, error) {
-	b, err := s.book.GetBook(parameters.BookId)
+func (s *GenerateScript) Handle(parameters GenerateScriptParameters) error {
+	scr, err := s.script.GetScript(parameters.ScriptId)
 	if err != nil {
-		return "", 0, err
+		return err
 	}
-	if b == nil {
-		return "", 0, appError.BadRequest(errors.New("book does not exist"))
+	if s == nil {
+		return appError.BadRequest(errors.New("script does not exist"))
 	}
 
-	fetchedChapters, err := s.book.GetChapters(b.Id, parameters.Chapters)
+	b, err := s.book.GetBook(scr.BookId)
 	if err != nil {
-		return "", 0, err
+		return err
+	}
+	if b == nil {
+		return appError.BadRequest(errors.New("book does not exist"))
+	}
+
+	fetchedChapters, err := s.book.GetChapters(b.Id, scr.Chapters)
+	if err != nil {
+		return err
 	}
 	if len(fetchedChapters) < 1 {
-		return "", 0, appError.BadRequest(errors.New("chapters does not exist"))
+		return appError.BadRequest(errors.New("chapters does not exist"))
 	}
 
 	var chapterIds []int64
@@ -52,7 +58,7 @@ func (s *GenerateScript) Handle(parameters GenerateScriptParameters) (string, in
 
 	uploadedFiles, err := getUploads(chapterIds, s.book, s.ai)
 	if err != nil {
-		return "", 0, err
+		return err
 	}
 
 	var previousScripts []script.Script
@@ -62,25 +68,22 @@ func (s *GenerateScript) Handle(parameters GenerateScriptParameters) (string, in
 			Ids:    parameters.PreviousScripts,
 		})
 		if err != nil {
-			return "", 0, err
+			return err
 		}
 	}
 	concatenatedScript := s.concatScripts(previousScripts, b.Title)
-	scriptPrompt := prompts.ScriptPrompt(b.Title, parameters.Chapters, &concatenatedScript)
+	scriptPrompt := prompts.ScriptPrompt(b.Title, scr.Chapters, &concatenatedScript)
 
 	scriptResponse, err := s.ai.GenerateText(scriptPrompt, false, uploadedFiles)
 	if err != nil {
-		return "", 0, err
+		return err
 	}
 
-	scriptId, err := s.script.CreateScript(&script.Script{
-		Name:     parameters.Name,
-		Content:  &scriptResponse.Response,
-		BookId:   b.Id,
-		Chapters: parameters.Chapters,
+	err = s.script.UpdateScript(scr.Id, &script.Script{
+		Content: &scriptResponse.Response,
 	})
 
-	return scriptResponse.Response, scriptId, err
+	return err
 }
 
 func getUploads(chapterIds []int64, bookImplementation book.Interface, aiImplementation ai.Interface) ([]ai.UploadedFile, error) {

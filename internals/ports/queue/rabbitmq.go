@@ -9,6 +9,7 @@ import (
 	"github.com/Pr3c10us/absolutego/internals/domains/queue"
 	"github.com/Pr3c10us/absolutego/internals/domains/queueport"
 	"github.com/Pr3c10us/absolutego/internals/ports/queue/addchapter"
+	"github.com/Pr3c10us/absolutego/internals/ports/queue/generatescript"
 	"github.com/Pr3c10us/absolutego/internals/services"
 	"github.com/Pr3c10us/absolutego/packages/configs"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -36,6 +37,7 @@ func NewAMQConsumer(environmentVariables *configs.EnvironmentVariables, amqp *am
 	}
 
 	amqConsumer.Consume(addchapter.Handler, string(queue.QueueAddChapter))
+	amqConsumer.Consume(generatescript.Handler, string(queue.QueueGenScript))
 
 	return amqConsumer
 }

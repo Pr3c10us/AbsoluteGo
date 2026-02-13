@@ -52,10 +52,8 @@ func (h *Handler) GenerateScripts(c *gin.Context) {
 		return
 	}
 
-	var scriptContent string
-	var scriptId int64
 	var err error
-	if scriptContent, scriptId, err = h.service.GenerateScript.Handle(commands.GenerateScriptParameters{
+	if err = h.service.CreateScript.Handle(commands.CreateScriptParameters{
 		BookId:          req.BookId,
 		Name:            req.Name,
 		Chapters:        req.Chapters,
@@ -65,7 +63,7 @@ func (h *Handler) GenerateScripts(c *gin.Context) {
 		return
 	}
 
-	response.NewSuccessResponse("", gin.H{"script": scriptContent, "scriptId": scriptId}, nil).Send(c)
+	response.NewSuccessResponse("chapter added", nil, nil).Send(c)
 }
 
 func (h *Handler) DeleteScript(c *gin.Context) {
