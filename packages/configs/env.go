@@ -29,12 +29,13 @@ type GeminiConfig struct {
 }
 
 type EnvironmentVariables struct {
-	Port           string
-	DatabasePath   string
-	AllowedOrigins []string
-	S3             *S3Credentials
-	Buckets        *Buckets
-	Gemini         *GeminiConfig
+	Port                string
+	DatabasePath        string
+	AllowedOrigins      []string
+	S3                  *S3Credentials
+	Buckets             *Buckets
+	Gemini              *GeminiConfig
+	AMQConnectionString string
 }
 
 func loadEnv() {
@@ -68,6 +69,7 @@ func LoadEnvironment() *EnvironmentVariables {
 			FastModel: getEnvOrError("GEMINI_FAST_MODEL"),
 			LiveModel: getEnvOrError("GEMINI_LIVE_MODEL"),
 		},
+		AMQConnectionString: getEnv("AMQ_CONNECTION_STRING", "amqp://guest:guest@localhost:5672/"),
 	}
 }
 

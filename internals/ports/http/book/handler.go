@@ -82,7 +82,7 @@ func (h *Handler) DeleteBook(c *gin.Context) {
 	response.NewSuccessResponse("book deleted", nil, nil).Send(c)
 }
 
-func (h *Handler) AddChapter(c *gin.Context) {
+func (h *Handler) UploadChapter(c *gin.Context) {
 	var req struct {
 		Book    *multipart.FileHeader `form:"book"    binding:"required"`
 		Chapter int                   `form:"chapter" binding:"required,gt=0"`
@@ -106,7 +106,7 @@ func (h *Handler) AddChapter(c *gin.Context) {
 		return
 	}
 
-	err := h.service.Commands.AddChapter.Handle(commands.Parameter{
+	err := h.service.Commands.UploadChapter.Handle(commands.UploadChapterParameter{
 		File:    dest,
 		Chapter: req.Chapter,
 		BookId:  req.BookID,

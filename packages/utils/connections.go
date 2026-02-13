@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"log"
 
 	"github.com/Pr3c10us/absolutego/packages/configs"
@@ -40,4 +41,22 @@ func NewGoogleGenAIClient(env *configs.EnvironmentVariables) *genai.Client {
 		log.Fatalf("failed to create Google GenAI client: %v", err)
 	}
 	return client
+}
+
+func NewAMQChannel(conn *amqp.Connection) *amqp.Channel {
+	channel, err := conn.Channel()
+	if err != nil {
+		log.Fatalf("failed to open channel %v", err)
+	}
+	return channel
+}
+
+func NewAMQConnection(env *configs.EnvironmentVariables) *amqp.Connection {
+	conn, err := amqp.Dial(env.AMQConnectionString)
+	if err != nil {
+		log.Printf("failed to connect to rabbitmq: %v", err)
+		panic("failed to connect to rabbitmq")
+
+	}
+	return conn
 }

@@ -17,6 +17,7 @@ require (
 	github.com/lib/pq v1.11.1
 	github.com/minio/minio-go/v7 v7.0.98
 	github.com/otiai10/gosseract/v2 v2.4.1
+	github.com/rabbitmq/amqp091-go v1.10.0
 	go.uber.org/zap v1.27.1
 	golang.org/x/image v0.35.0
 	golift.io/xtractr v0.2.2

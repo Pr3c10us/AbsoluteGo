@@ -3,11 +3,7 @@ package commands
 import (
 	"errors"
 	"fmt"
-	"io"
-	"math/rand"
-	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -25,14 +21,14 @@ type GenerateScript struct {
 	ai     ai.Interface
 }
 
-type Parameters struct {
+type GenerateScriptParameters struct {
 	BookId          int64
 	Name            string
 	Chapters        []int
 	PreviousScripts []int64
 }
 
-func (s *GenerateScript) Handle(parameters Parameters) (string, int64, error) {
+func (s *GenerateScript) Handle(parameters GenerateScriptParameters) (string, int64, error) {
 	b, err := s.book.GetBook(parameters.BookId)
 	if err != nil {
 		return "", 0, err
@@ -135,7 +131,7 @@ func getUploads(chapterIds []int64, bookImplementation book.Interface, aiImpleme
 			}
 		}
 
-		tmpPath, err := downloadPage(*j.page.URL)
+		tmpPath, err := utils.DownloadPage(*j.page.URL)
 		if err != nil {
 			return err
 		}
@@ -185,33 +181,6 @@ func getUploads(chapterIds []int64, bookImplementation book.Interface, aiImpleme
 	}
 
 	return uploads, nil
-}
-
-func downloadPage(url string) (string, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	tmpDir, err := utils.GetDirectory("tmp")
-	if err != nil {
-		return "", err
-	}
-
-	tmpFile := filepath.Join(tmpDir, fmt.Sprintf("%d-%d", time.Now().UnixMilli(), rand.Intn(1000000000)))
-
-	out, err := os.Create(tmpFile)
-	if err != nil {
-		return "", err
-	}
-	defer out.Close()
-
-	if _, err := io.Copy(out, resp.Body); err != nil {
-		return "", err
-	}
-
-	return tmpFile, nil
 }
 
 func (s *GenerateScript) concatScripts(scripts []script.Script, bookTitle string) string {

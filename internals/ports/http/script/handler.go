@@ -55,7 +55,7 @@ func (h *Handler) GenerateScripts(c *gin.Context) {
 	var scriptContent string
 	var scriptId int64
 	var err error
-	if scriptContent, scriptId, err = h.service.GenerateScript.Handle(commands.Parameters{
+	if scriptContent, scriptId, err = h.service.GenerateScript.Handle(commands.GenerateScriptParameters{
 		BookId:          req.BookId,
 		Name:            req.Name,
 		Chapters:        req.Chapters,

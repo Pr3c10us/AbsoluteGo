@@ -14,17 +14,17 @@ import (
 	"github.com/minio/minio-go/v7"
 )
 
-type minioStorageRepository struct {
+type minioStorageImplementation struct {
 	client *minio.Client
 }
 
-func NewMinioStorageRepository(client *minio.Client) storage.Interface {
-	return &minioStorageRepository{
+func NewMinioStorageImplementation(client *minio.Client) storage.Interface {
+	return &minioStorageImplementation{
 		client: client,
 	}
 }
 
-func (r *minioStorageRepository) parseURL(rawURL string) (bucket, objectKey string, err error) {
+func (r *minioStorageImplementation) parseURL(rawURL string) (bucket, objectKey string, err error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to parse URL %q: %w", rawURL, err)
@@ -39,13 +39,13 @@ func (r *minioStorageRepository) parseURL(rawURL string) (bucket, objectKey stri
 	return parts[0], parts[1], nil
 }
 
-func (r *minioStorageRepository) generateObjectKey(filename string) string {
+func (r *minioStorageImplementation) generateObjectKey(filename string) string {
 	ext := filepath.Ext(filename)
 	uniqueID := uuid.New().String()
 	return uniqueID + ext
 }
 
-func (r *minioStorageRepository) UploadFile(bucketName string, file *os.File) (string, error) {
+func (r *minioStorageImplementation) UploadFile(bucketName string, file *os.File) (string, error) {
 	stat, err := file.Stat()
 	if err != nil {
 		return "", fmt.Errorf("failed to stat file: %w", err)
@@ -62,7 +62,7 @@ func (r *minioStorageRepository) UploadFile(bucketName string, file *os.File) (s
 	return fmt.Sprintf("%s/%s/%s", endpoint, bucketName, objectKey), nil
 }
 
-func (r *minioStorageRepository) UploadMany(bucketName string, files []*os.File) []storage.UploadResult {
+func (r *minioStorageImplementation) UploadMany(bucketName string, files []*os.File) []storage.UploadResult {
 	results := make([]storage.UploadResult, len(files))
 	var wg sync.WaitGroup
 
@@ -89,7 +89,7 @@ func (r *minioStorageRepository) UploadMany(bucketName string, files []*os.File)
 	return results
 }
 
-func (r *minioStorageRepository) DeleteFile(fileURL string) error {
+func (r *minioStorageImplementation) DeleteFile(fileURL string) error {
 	bucket, key, err := r.parseURL(fileURL)
 	if err != nil {
 		return fmt.Errorf("DeleteFile: %w", err)
@@ -98,7 +98,7 @@ func (r *minioStorageRepository) DeleteFile(fileURL string) error {
 	return r.client.RemoveObject(context.TODO(), bucket, key, minio.RemoveObjectOptions{})
 }
 
-func (r *minioStorageRepository) DeleteMany(urls []string) []storage.DeleteResult {
+func (r *minioStorageImplementation) DeleteMany(urls []string) []storage.DeleteResult {
 	results := make([]storage.DeleteResult, len(urls))
 	var wg sync.WaitGroup
 

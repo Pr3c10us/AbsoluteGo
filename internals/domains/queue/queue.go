@@ -1,24 +1,22 @@
 package queue
 
-import (
-	"github.com/google/uuid"
+type Queue string
+
+const (
+	QueueAddChapter     Queue = "add_chapter"
+	QueueGenScript      Queue = "gen_script"
+	QueueGenScriptSplit Queue = "gen_script_split"
+	QueueGenAudio       Queue = "gen_audio"
+	QueueGenVideo       Queue = "gen_video"
+	QueueMergeVideo     Queue = "merge_video"
 )
 
-type TaskQueueMessage struct {
-	UserSlackId      string
-	WorkspaceSlackId string
-	WorkflowId       uuid.UUID
-	CronJobID        uuid.UUID
-}
-
-type SendSlackMessage struct {
-	Message string
-	Token   string
-	SlackID string
-}
-
 type MessageParams struct {
-	Queue   string
-	Message string
-	Key     string
+	Queue   Queue
+	Message Message
+}
+
+type Message struct {
+	EventId int64
+	Data    []byte
 }

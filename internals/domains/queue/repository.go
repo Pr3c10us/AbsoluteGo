@@ -1,5 +1,5 @@
 package queue
 
-type Repository interface {
+type Interface interface {
 	Publish(params *MessageParams) error
 }

@@ -28,10 +28,9 @@ type AddChapter struct {
 	deleteChapter *DeleteChapter
 }
 
-type Parameter struct {
-	File    string
-	Chapter int
-	BookId  int64
+type AddChapterParameter struct {
+	FileUrl   string
+	ChapterId int64
 }
 
 type uploadTracker struct {
@@ -53,27 +52,19 @@ func (t *uploadTracker) All() []string {
 	return dst
 }
 
-func (s *AddChapter) Handle(p Parameter) error {
-	defer os.Remove(p.File)
-
-	b, err := s.book.GetBook(p.BookId)
+func (s *AddChapter) Handle(p AddChapterParameter) error {
+	file, err := utils.DownloadPage(p.FileUrl)
 	if err != nil {
 		return err
 	}
-	if b == nil {
-		return appError.BadRequest(errors.New("book does not exist"))
-	}
+	fmt.Println(file)
 
-	chapters, _ := s.book.GetChapters(b.Id, []int{p.Chapter})
-	for _, ch := range chapters {
-		if err = s.deleteChapter.Handle(ch.Id); err != nil {
-			return err
-		}
-	}
-
-	chapterId, err := s.book.CreateChapter(p.BookId, p.Chapter, "")
+	c, err := s.book.GetChapter(p.ChapterId)
 	if err != nil {
 		return err
+	}
+	if c == nil {
+		return appError.BadRequest(errors.New("chapter does not exist"))
 	}
 
 	outputDir, err := utils.GetDirectory("books")
@@ -82,7 +73,7 @@ func (s *AddChapter) Handle(p Parameter) error {
 	}
 	defer os.RemoveAll(outputDir)
 
-	if err = s.processFile(outputDir, p.File, p.Chapter); err != nil {
+	if err = s.processFile(outputDir, file, c.Number); err != nil {
 		return err
 	}
 
@@ -94,7 +85,7 @@ func (s *AddChapter) Handle(p Parameter) error {
 	tracker := &uploadTracker{}
 	rollback := func() { s.storage.DeleteMany(tracker.All()) }
 
-	processedPages, cover, err := s.processPages(pagePaths, chapterId, tracker)
+	processedPages, cover, err := s.processPages(pagePaths, c.Id, tracker)
 	if err != nil {
 		rollback()
 		return err
@@ -105,7 +96,7 @@ func (s *AddChapter) Handle(p Parameter) error {
 		return appError.BadRequest(errors.New("no cover image found in the uploaded file"))
 	}
 
-	if err = s.book.UpdateChapter(chapterId, 0, *cover.URL); err != nil {
+	if err = s.book.UpdateChapter(c.Id, 0, *cover.URL); err != nil {
 		rollback()
 		return err
 	}

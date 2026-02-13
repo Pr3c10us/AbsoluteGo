@@ -2,6 +2,11 @@ package adapters
 
 import (
 	"database/sql"
+	event2 "github.com/Pr3c10us/absolutego/internals/adapters/event"
+	queue2 "github.com/Pr3c10us/absolutego/internals/adapters/queue"
+	"github.com/Pr3c10us/absolutego/internals/domains/event"
+	"github.com/Pr3c10us/absolutego/internals/domains/queue"
+	amqp "github.com/rabbitmq/amqp091-go"
 
 	ai2 "github.com/Pr3c10us/absolutego/internals/adapters/ai"
 	book2 "github.com/Pr3c10us/absolutego/internals/adapters/book"
@@ -22,22 +27,29 @@ type AdapterDependencies struct {
 	GoogleGenAIClient    *genai.Client
 	S3Client             *minio.Client
 	DB                   *sql.DB
+	AMQP                 *amqp.Channel
 }
 
 type Adapters struct {
-	EnvironmentVariables   *configs.EnvironmentVariables
-	AiImplementation       ai.Interface
-	StorageRepository      storage.Interface
-	BookImplementation     book.Interface
-	ScriptImplementation   script.Interface
+	Dependencies          AdapterDependencies
+	EnvironmentVariables  *configs.EnvironmentVariables
+	AiImplementation      ai.Interface
+	StorageImplementation storage.Interface
+	BookImplementation    book.Interface
+	ScriptImplementation  script.Interface
+	QueueImplementation   queue.Interface
+	EventImplementation   event.Interface
 }
 
 func NewAdapters(dependencies AdapterDependencies) *Adapters {
 	return &Adapters{
-		EnvironmentVariables:   dependencies.EnvironmentVariables,
-		AiImplementation:       ai2.NewGoogleAI(dependencies.GoogleGenAIClient, dependencies.EnvironmentVariables.Gemini),
-		StorageRepository:      storage2.NewMinioStorageRepository(dependencies.S3Client),
-		BookImplementation:     book2.NewBookImplementation(dependencies.DB),
-		ScriptImplementation:   script2.NewScriptImplementation(dependencies.DB),
+		Dependencies:          dependencies,
+		EnvironmentVariables:  dependencies.EnvironmentVariables,
+		AiImplementation:      ai2.NewGoogleAI(dependencies.GoogleGenAIClient, dependencies.EnvironmentVariables.Gemini),
+		StorageImplementation: storage2.NewMinioStorageImplementation(dependencies.S3Client),
+		BookImplementation:    book2.NewBookImplementation(dependencies.DB),
+		ScriptImplementation:  script2.NewScriptImplementation(dependencies.DB),
+		QueueImplementation:   queue2.NewAMQImplementation(dependencies.AMQP, dependencies.EnvironmentVariables),
+		EventImplementation:   event2.NewEventImplementation(dependencies.DB),
 	}
 }

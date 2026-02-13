@@ -1,19 +1,24 @@
 package queue
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
-	"github.com/Pr3c10us/fanatix/internals/domains/queueport"
-	"github.com/Pr3c10us/fanatix/internals/infrastructures/adapters"
-	"github.com/Pr3c10us/fanatix/internals/infrastructures/ports/queue/events"
-	"github.com/Pr3c10us/fanatix/internals/infrastructures/ports/queue/livescores"
-	"github.com/Pr3c10us/fanatix/internals/services"
-	"github.com/Pr3c10us/fanatix/packages/configs"
-	"github.com/Pr3c10us/fanatix/packages/logger"
+	"github.com/Pr3c10us/absolutego/internals/adapters"
+	event2 "github.com/Pr3c10us/absolutego/internals/domains/event"
+	"github.com/Pr3c10us/absolutego/internals/domains/queue"
+	"github.com/Pr3c10us/absolutego/internals/domains/queueport"
+	"github.com/Pr3c10us/absolutego/internals/ports/queue/addchapter"
+	"github.com/Pr3c10us/absolutego/internals/services"
+	"github.com/Pr3c10us/absolutego/packages/configs"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"sync"
 )
 
+const maxRetries = 5
+const retryHeaderKey = "x-retry-count"
+
 type AMQConsumer struct {
-	logger               logger.Logger
 	environmentVariables *configs.EnvironmentVariables
 	amqp                 *amqp.Channel
 	Listen               chan struct{}
@@ -21,9 +26,8 @@ type AMQConsumer struct {
 	adapter              *adapters.Adapters
 }
 
-func NewAMQConsumer(newLogger logger.Logger, environmentVariables *configs.EnvironmentVariables, amqp *amqp.Channel, services *services.Services, adapters *adapters.Adapters) *AMQConsumer {
+func NewAMQConsumer(environmentVariables *configs.EnvironmentVariables, amqp *amqp.Channel, services *services.Services, adapters *adapters.Adapters) *AMQConsumer {
 	amqConsumer := &AMQConsumer{
-		logger:               newLogger,
 		environmentVariables: environmentVariables,
 		amqp:                 amqp,
 		Listen:               make(chan struct{}),
@@ -31,14 +35,12 @@ func NewAMQConsumer(newLogger logger.Logger, environmentVariables *configs.Envir
 		adapter:              adapters,
 	}
 
-	// live score
-	amqConsumer.Consume(livescores.Handler, environmentVariables.LiveScoresQueue)
-	amqConsumer.Consume(events.Handler, environmentVariables.KafkaTopics.EventsTopic)
+	amqConsumer.Consume(addchapter.Handler, string(queue.QueueAddChapter))
 
 	return amqConsumer
 }
 
-func (amqConsumer *AMQConsumer) Consume(handler func(c *queueport.Context), queueName string) {
+func (amqConsumer *AMQConsumer) Consume(handler func(c *queueport.Context) error, queueName string) {
 	q, err := amqConsumer.amqp.QueueDeclare(
 		queueName, // name
 		false,     // durable
@@ -48,34 +50,119 @@ func (amqConsumer *AMQConsumer) Consume(handler func(c *queueport.Context), queu
 		nil,       // arguments
 	)
 	if err != nil {
-		amqConsumer.logger.LogWithFields("panic", fmt.Sprintf("Failed to declare queue %v", queueName), err)
+		panic(fmt.Sprintf("Failed to declare queue %v: %v", queueName, err))
 	}
 
 	messages, err := amqConsumer.amqp.Consume(
 		q.Name,
-		"",    // amqConsumer
-		true,  // auto-ack
+		"",    // consumer
+		false, // auto-ack — disabled so we can manually ack/nack
 		false, // exclusive
 		false, // no-local
 		false, // no-wait
 		nil,   // args
 	)
 	if err != nil {
-		amqConsumer.logger.LogWithFields("panic", fmt.Sprintf("Failed to register %v amqConsumer", queueName), err)
+		panic(fmt.Sprintf("Failed to register %v consumer: %v", queueName, err))
 	}
 
-	go func() {
-		for message := range messages {
-			context := queueport.Context{
-				Adapters:             amqConsumer.adapter,
-				Services:             amqConsumer.services,
-				Logger:               amqConsumer.logger,
-				AMQMessage:           &message,
-				EnvironmentVariables: amqConsumer.environmentVariables,
-			}
-			handler(&context)
-		}
-	}()
+	const maxWorkers = 5
+	var wg sync.WaitGroup
+	for i := 0; i < maxWorkers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for message := range messages {
+				retryCount := getRetryCount(message)
 
-	amqConsumer.logger.Log("debug", fmt.Sprintf("[*] Waiting for %v messages.", queueName))
+				var m queue.Message
+				err = json.Unmarshal(message.Body, &m)
+				if err != nil {
+					_ = message.Ack(false)
+					continue
+				}
+
+				eventId := m.EventId
+				var event *event2.Event
+				event, err = amqConsumer.adapter.EventImplementation.GetEvent(eventId)
+				if err != nil || event == nil {
+					_ = message.Ack(false)
+					continue
+				}
+
+				_ = amqConsumer.adapter.EventImplementation.UpdateStatus(eventId, event2.StatusProcessing)
+
+				ctx := queueport.Context{
+					Adapters:             amqConsumer.adapter,
+					Services:             amqConsumer.services,
+					Data:                 m.Data,
+					EnvironmentVariables: amqConsumer.environmentVariables,
+				}
+
+				if err = handler(&ctx); err != nil {
+					fmt.Println(err)
+					if retryCount >= maxRetries {
+						_ = amqConsumer.adapter.EventImplementation.UpdateStatus(eventId, event2.StatusFailed)
+						_ = message.Ack(false)
+						continue
+					}
+
+					if pubErr := amqConsumer.republish(queueName, message, retryCount+1); pubErr != nil {
+						_ = amqConsumer.adapter.EventImplementation.UpdateStatus(eventId, event2.StatusFailed)
+						_ = message.Nack(false, false)
+						continue
+					}
+
+					_ = amqConsumer.adapter.EventImplementation.UpdateStatus(eventId, event2.StatusRetry)
+					_ = message.Ack(false)
+				} else {
+					_ = amqConsumer.adapter.EventImplementation.UpdateStatus(eventId, event2.StatusSuccessful)
+					_ = message.Ack(false)
+				}
+			}
+		}()
+	}
+}
+
+func getRetryCount(msg amqp.Delivery) int {
+	if msg.Headers == nil {
+		return 0
+	}
+
+	val, ok := msg.Headers[retryHeaderKey]
+	if !ok {
+		return 0
+	}
+
+	switch v := val.(type) {
+	case int32:
+		return int(v)
+	case int64:
+		return int(v)
+	case int:
+		return v
+	default:
+		return 0
+	}
+}
+
+func (amqConsumer *AMQConsumer) republish(queueName string, original amqp.Delivery, retryCount int) error {
+	headers := original.Headers
+	if headers == nil {
+		headers = amqp.Table{}
+	}
+	headers[retryHeaderKey] = int32(retryCount)
+
+	return amqConsumer.amqp.PublishWithContext(
+		context.Background(),
+		"",        // default exchange
+		queueName, // routing key = queue name
+		false,     // mandatory
+		false,     // immediate
+		amqp.Publishing{
+			Headers:     headers,
+			ContentType: original.ContentType,
+			Body:        original.Body,
+		},
+	)
 }
