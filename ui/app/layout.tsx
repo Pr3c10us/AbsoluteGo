@@ -4,7 +4,7 @@ import { GeistMono } from "geist/font/mono";
 import { Providers } from "@/lib/providers";
 import { Toaster } from "@/components/ui/sonner";
 import Dock from "@/components/dock";
-import UploadTracker from "@/components/upload-tracker";
+import EventTracker from "@/components/event-tracker";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -24,7 +24,7 @@ export default function RootLayout({
       >
         <Providers>
           {children}
-          <UploadTracker />
+          <EventTracker />
           <Dock />
           <Toaster />
         </Providers>

@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"encoding/json"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"github.com/Pr3c10us/absolutego/internals/domains/book"
@@ -9,25 +9,25 @@ import (
 	"github.com/Pr3c10us/absolutego/internals/domains/queue"
 	"github.com/Pr3c10us/absolutego/internals/domains/script"
 	"github.com/Pr3c10us/absolutego/packages/appError"
-	"sort"
-	"strings"
 )
 
-type CreateScript struct {
+type CreateSplits struct {
 	eventImplementation  event.Interface
 	bookImplementation   book.Interface
 	queueImplementation  queue.Interface
 	scriptImplementation script.Interface
 }
-type CreateScriptParameters struct {
-	BookId          int64
-	Chapters        []int
-	Name            string
-	PreviousScripts []int64
-}
 
-func (s *CreateScript) Handle(parameters CreateScriptParameters) error {
-	b, err := s.bookImplementation.GetBook(parameters.BookId)
+func (service *CreateSplits) Handle(scriptId int64) error {
+	scr, err := service.scriptImplementation.GetScript(scriptId)
+	if err != nil {
+		return err
+	}
+	if scr == nil {
+		return appError.BadRequest(errors.New("script does not exist"))
+	}
+
+	b, err := service.bookImplementation.GetBook(scr.BookId)
 	if err != nil {
 		return err
 	}
@@ -35,39 +35,25 @@ func (s *CreateScript) Handle(parameters CreateScriptParameters) error {
 		return appError.BadRequest(errors.New("book does not exist"))
 	}
 
-	fetchedChapters, err := s.bookImplementation.GetChapters(b.Id, parameters.Chapters)
-	if err != nil {
-		return err
-	}
-	if len(fetchedChapters) < 1 {
-		return appError.BadRequest(errors.New("chapters does not exist"))
-	}
-
-	eventId, err := s.eventImplementation.Create(event.Event{
+	eventId, err := service.eventImplementation.Create(event.Event{
 		Status:      event.StatusEnqueue,
-		Operation:   event.OpGenScript,
-		Description: buildOperation(b.Title, parameters.Chapters),
+		Operation:   event.OpGenScriptSplit,
+		Description: fmt.Sprintf("splitting %s script for %s", scr.Name, b.Title),
+		BookId:      b.Id,
 	})
-
-	addChapterParameter := GenerateScriptParameters{
-		BookId:          b.Id,
-		Name:            parameters.Name,
-		Chapters:        parameters.Chapters,
-		PreviousScripts: parameters.PreviousScripts,
-	}
-
-	var dataByte []byte
-	dataByte, err = json.Marshal(addChapterParameter)
 	if err != nil {
 		return err
 	}
+
+	dataByte := make([]byte, 8)
+	binary.BigEndian.PutUint64(dataByte, uint64(scr.Id))
 
 	qMsg := queue.Message{
 		EventId: eventId,
 		Data:    dataByte,
 	}
 
-	err = s.queueImplementation.Publish(&queue.MessageParams{
+	err = service.queueImplementation.Publish(&queue.MessageParams{
 		Queue:   queue.QueueGenScript,
 		Message: qMsg,
 	})
@@ -76,42 +62,11 @@ func (s *CreateScript) Handle(parameters CreateScriptParameters) error {
 	}
 
 	return nil
+
 }
 
-func buildOperation(bookName string, chapters []int) string {
-	if len(chapters) == 0 {
-		return fmt.Sprintf("Create script from %q", bookName)
-	}
-
-	sorted := make([]int, len(chapters))
-	copy(sorted, chapters)
-	sort.Ints(sorted)
-
-	if isContiguousRange(sorted) {
-		if len(sorted) == 1 {
-			return fmt.Sprintf("Create script from %q ch. %d", bookName, sorted[0])
-		}
-		return fmt.Sprintf("Create script from %q ch. %d to %d", bookName, sorted[0], sorted[len(sorted)-1])
-	}
-
-	parts := make([]string, len(sorted))
-	for i, ch := range sorted {
-		parts[i] = fmt.Sprintf("%d", ch)
-	}
-	return fmt.Sprintf("Create script from %q ch. %s", bookName, strings.Join(parts, ", "))
-}
-
-func isContiguousRange(sorted []int) bool {
-	for i := 1; i < len(sorted); i++ {
-		if sorted[i] != sorted[i-1]+1 {
-			return false
-		}
-	}
-	return true
-}
-
-func NewCreateScript(eventImplementation event.Interface, bookImplementation book.Interface, queueImplementation queue.Interface, scriptImplementation script.Interface) *CreateScript {
-	return &CreateScript{
+func NewCreateSplits(eventImplementation event.Interface, bookImplementation book.Interface, queueImplementation queue.Interface, scriptImplementation script.Interface) *CreateSplits {
+	return &CreateSplits{
 		eventImplementation, bookImplementation, queueImplementation, scriptImplementation,
 	}
 }

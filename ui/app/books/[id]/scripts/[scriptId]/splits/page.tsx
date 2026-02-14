@@ -10,12 +10,12 @@ import {
     fetchScripts,
     fetchSplits,
     deleteSplits,
+    generateSplits,
     ApiError,
     type Book,
     type Script,
     type Split,
 } from "@/lib/api";
-import { useUpload } from "@/lib/upload-context";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { Button } from "@/components/ui/button";
 import Lightbox, { type LightboxItem } from "@/components/lightbox";
@@ -356,8 +356,6 @@ export default function SplitsPage() {
     const bookId = Number(params.id);
     const scriptId = Number(params.scriptId);
     const queryClient = useQueryClient();
-    const { generateSplitsTask, isSplitGenerating } = useUpload();
-    const splitInProgress = isSplitGenerating(scriptId);
 
     // -- state
     const [confirmClear, setConfirmClear] = useState(false);
@@ -538,30 +536,43 @@ export default function SplitsPage() {
                                         Clear Splits
                                     </Button>
                                     <Button
-                                        onClick={() => generateSplitsTask(scriptId, scriptName)}
-                                        disabled={splitInProgress}
+                                        onClick={() => {
+                                            toast.info(`Generating splits for "${scriptName}"…`, { duration: 3000 });
+                                            generateSplits(scriptId).catch((err) => {
+                                                toast.error(
+                                                    err instanceof ApiError
+                                                        ? err.isValidationError
+                                                            ? err.validationErrors.map((v) => v.message).join(", ")
+                                                            : err.businessError
+                                                        : "Split generation failed — please retry"
+                                                );
+                                            });
+                                        }}
                                         className="gap-1.5"
                                     >
-                                        {splitInProgress ? (
-                                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-background/30 border-t-background" />
-                                        ) : (
-                                            RefreshIcon
-                                        )}
-                                        {splitInProgress ? "Generating…" : "Regenerate"}
+                                        {RefreshIcon}
+                                        Regenerate
                                     </Button>
                                 </>
                             ) : (
                                 <Button
-                                    onClick={() => generateSplitsTask(scriptId, scriptName)}
-                                    disabled={isLoading || splitInProgress}
+                                    onClick={() => {
+                                        toast.info(`Generating splits for "${scriptName}"…`, { duration: 3000 });
+                                        generateSplits(scriptId).catch((err) => {
+                                            toast.error(
+                                                err instanceof ApiError
+                                                    ? err.isValidationError
+                                                        ? err.validationErrors.map((v) => v.message).join(", ")
+                                                        : err.businessError
+                                                    : "Split generation failed — please retry"
+                                            );
+                                        });
+                                    }}
+                                    disabled={isLoading}
                                     className="gap-1.5"
                                 >
-                                    {splitInProgress ? (
-                                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-background/30 border-t-background" />
-                                    ) : (
-                                        SparklesIcon
-                                    )}
-                                    {splitInProgress ? "Generating…" : "Generate Splits"}
+                                    {SparklesIcon}
+                                    Generate Splits
                                 </Button>
                             )}
                         </div>

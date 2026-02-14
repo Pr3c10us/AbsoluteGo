@@ -2,22 +2,22 @@
 
 ## Background Generation Processes
 
-**All AI generation and long-running API calls MUST run as background tasks.**
+**All AI generation and long-running API calls are fire-and-forget — the backend queues them as events.**
 
-When implementing any feature that calls an AI generation endpoint (script generation, split generation, or any future generation endpoint), you MUST:
+When implementing any feature that calls an AI generation endpoint (chapter upload, script generation, split generation, audio/video generation, or any future generation endpoint), you MUST:
 
-1. **Use the background task context** (`useUpload` from `@/lib/upload-context`) instead of inline `useMutation` for the generation call.
-2. **Fire-and-forget** — close any modal / reset form state immediately after dispatching the task. Do NOT block the UI waiting for the response.
-3. **Add a new task method** to the `UploadProvider` in `lib/upload-context.tsx` if one doesn't exist for the operation. Follow the existing pattern:
-   - Create a discriminated union member type (e.g. `interface FooTask { type: "foo"; ... }`)
-   - Add it to the `BackgroundTask` union
-   - Add the fire-and-forget method to the context value interface and implementation
-   - Show a `toast.info` on start, `toast.success` on completion, `toast.error` on failure
-   - Invalidate the relevant React Query cache key on success
-   - Auto-remove the task from the list after a delay (5s success, 8s error)
-4. **Update the tracker** (`components/upload-tracker.tsx`) — add the new task type to `getTaskLabel()` and `getTaskSubtitle()` so it renders correctly in the background tasks panel.
+1. **Call the API function directly** (e.g. `addChapter()`, `generateScript()`, `generateSplits()` from `@/lib/api`) — there is no background task context.
+2. **Fire-and-forget** — close any modal / reset form state immediately after dispatching the call. Do NOT block the UI waiting for the response.
+3. **Show a `toast.info()`** when dispatching the call so the user knows it was sent.
+4. **Catch errors** with `.catch()` and show `toast.error()` — the only client-side error handling needed.
 5. **Never use `useMutation`** for generation endpoints. `useMutation` is only for quick synchronous operations like delete.
+
+### Events Tracker
+
+The `EventTracker` component (`components/event-tracker.tsx`) polls `GET /api/v1/event` every 5 seconds using `useQuery` and displays a draggable pill + panel at the bottom corner. It shows all server-side events with their status (queued, processing, failed, successful, retrying). Users can hover to preview events or click to pin the panel open.
+
+**Do NOT** use `UploadProvider`, `useUpload`, or any client-side background task tracking. Those have been removed.
 
 ### Rationale
 
-Generation endpoints hit AI models and can take 10–60+ seconds. Blocking the UI with a spinner degrades UX. The background task pill (bottom corner) lets users navigate freely while generation runs, and shows progress/completion status.
+Generation endpoints hit AI models and can take 10–60+ seconds. The backend queues these as events and tracks their status server-side. The `EventTracker` polls for updates, keeping the UI responsive while showing real-time progress.

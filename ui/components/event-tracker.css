@@ -1,8 +1,8 @@
-/* ── Upload Tracker — Vercel-style pill + hover panel ─────────────────────── */
+/* ── Event Tracker — pill + hover/click panel ─────────────────────────────── */
 
 /* ── Persistent pill ── */
 
-.ut-pill {
+.et-pill {
     position: fixed;
     z-index: 40;
     pointer-events: auto;
@@ -23,22 +23,22 @@
     overflow: visible;
 }
 
-.ut-pill:hover {
+.et-pill:hover {
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
 }
 
-.ut-pill--dragging {
+.et-pill--dragging {
     cursor: grabbing;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
-.ut-pill--active {
+.et-pill--active {
     box-shadow:
         0 0 16px rgba(0, 0, 0, 0.3),
         0 0 0 2px rgba(255, 255, 255, 0.08);
 }
 
-.ut-pill-badge {
+.et-pill-badge {
     position: absolute;
     top: -4px;
     right: -4px;
@@ -58,20 +58,21 @@
 
 /* ── Expanded panel ── */
 
-.ut-panel {
+.et-panel {
     position: fixed;
     z-index: 40;
     pointer-events: auto;
-    width: 260px;
-    border-radius: 10px 12px 11px 9px;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    width: 340px;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
     background-color: #fff;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
     font-family: var(--font-geist-sans), sans-serif;
-    animation: ut-panel-in 0.15s ease-out;
+    animation: et-panel-in 0.15s ease-out;
+    overflow: hidden;
 }
 
-@keyframes ut-panel-in {
+@keyframes et-panel-in {
     from {
         opacity: 0;
         scale: 0.96;
@@ -82,14 +83,14 @@
     }
 }
 
-.ut-panel-header {
+.et-panel-header {
     display: flex;
     align-items: center;
     padding: 0.625rem 0.75rem;
     border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-.ut-panel-title {
+.et-panel-title {
     font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 0.02em;
@@ -97,41 +98,75 @@
     color: #000;
 }
 
-.ut-panel-list {
+/* ── Filters ── */
+
+.et-filters {
+    display: flex;
+    gap: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* ── Scroll area ── */
+
+.et-scroll-area {
+    max-height: 260px;
+}
+
+/* ── Event list ── */
+
+.et-panel-list {
     list-style: none;
     margin: 0;
     padding: 0.375rem 0;
-    max-height: 200px;
-    overflow-y: auto;
 }
 
-.ut-panel-item {
+.et-panel-item {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.4rem 0.75rem;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.15s ease;
 }
 
-.ut-panel-item-icon {
+.et-panel-item:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+.et-panel-item--disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+
+.et-panel-item--disabled:hover {
+    background-color: transparent;
+}
+
+.et-panel-item-icon {
     display: flex;
     flex-shrink: 0;
     color: #000;
 }
 
-.ut-panel-item-info {
+.et-panel-item-info {
     display: flex;
     flex-direction: column;
     flex: 1;
     min-width: 0;
 }
 
-.ut-panel-item-name {
+.et-panel-item-name {
     font-size: 0.75rem;
     font-weight: 600;
     color: #000;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.ut-panel-item-file {
+.et-panel-item-desc {
     font-size: 0.6rem;
     color: #888;
     white-space: nowrap;
@@ -139,40 +174,45 @@
     text-overflow: ellipsis;
 }
 
-/* ── Badge ── */
+.et-panel-item-time {
+    font-size: 0.55rem;
+    color: #aaa;
+    margin-top: 1px;
+}
 
-.ut-panel-badge {
-    flex-shrink: 0;
+/* ── Empty state ── */
+
+.et-empty {
+    padding: 1.5rem 0.75rem;
+    text-align: center;
+    font-size: 0.7rem;
+    color: #aaa;
+}
+
+/* ── Pagination ── */
+
+.et-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.375rem 0.75rem 0.5rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.et-page-label {
     font-size: 0.6rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    padding: 0.125rem 0.4rem;
-    border-radius: 4px;
-}
-
-.ut-panel-badge--uploading {
-    background-color: #f0f0f0;
-    color: #444;
-}
-
-.ut-panel-badge--done {
-    background-color: #000;
-    color: #fff;
-}
-
-.ut-panel-badge--error {
-    background-color: #e5e5e5;
-    color: #000;
+    color: #888;
+    font-weight: 500;
 }
 
 /* ── Spinner ── */
 
-@keyframes ut-spin {
+@keyframes et-spin {
     to {
         transform: rotate(360deg);
     }
 }
 
-.ut-spinner {
-    animation: ut-spin 0.8s linear infinite;
+.et-spinner {
+    animation: et-spin 0.8s linear infinite;
 }

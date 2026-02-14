@@ -20,6 +20,7 @@ type Commands struct {
 	DeleteSplits   *commands.DeleteSplits
 	GenerateScript *commands.GenerateScript
 	CreateScript   *commands.CreateScript
+	CreateSplits   *commands.CreateSplits
 	GenerateSplits *commands.GenerateSplits
 }
 
@@ -36,6 +37,7 @@ func NewScriptServices(script script.Interface, book book.Interface, ai ai.Inter
 			GenerateScript: commands.NewGenerateScript(script, book, ai),
 			CreateScript:   commands.NewCreateScript(eventImplementation, book, queueImplementation, script),
 			GenerateSplits: commands.NewGenerateSplits(script, book, ai),
+			CreateSplits:   commands.NewCreateSplits(eventImplementation, book, queueImplementation, script),
 		},
 		Queries: Queries{
 			GetScripts: queries.NewGetScripts(script),

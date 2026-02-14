@@ -91,7 +91,7 @@ func (s *GenerateSplits) Handle(scriptId int64) error {
 		if p == nil || len(p.Panels) == 0 {
 			continue
 		}
-		
+
 		if existing, exists := splitMap[key]; exists {
 			existing.content = existing.content + "\n" + result.Script
 		} else {

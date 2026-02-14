@@ -1,8 +1,8 @@
 "use client";
 
-import { memo, useState, useCallback } from "react";
+import { memo, useState, useCallback, useEffect } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -10,12 +10,12 @@ import {
     fetchChapters,
     fetchScripts,
     deleteScript,
+    generateScript,
     ApiError,
     type Book,
     type Chapter,
     type Script,
 } from "@/lib/api";
-import { useUpload } from "@/lib/upload-context";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -410,7 +410,7 @@ export default function ScriptsPage() {
     const params = useParams();
     const bookId = Number(params.id);
     const queryClient = useQueryClient();
-    const { generateScriptTask } = useUpload();
+    const searchParams = useSearchParams();
 
     // -- state
     const [modalOpen, setModalOpen] = useState(false);
@@ -458,6 +458,14 @@ export default function ScriptsPage() {
     });
     const scripts: Script[] = scriptsData?.data?.scripts ?? [];
 
+    // -- auto-open script viewer from ?scriptId= query param (event tracker deep link)
+    useEffect(() => {
+        const sid = searchParams.get("scriptId");
+        if (!sid || scripts.length === 0) return;
+        const target = scripts.find((s) => s.id === Number(sid));
+        if (target) setViewingScript(target);
+    }, [searchParams, scripts]);
+
     // -- delete script mutation
     const deleteMutation = useMutation({
         mutationFn: (scriptId: number) => deleteScript(scriptId),
@@ -484,18 +492,29 @@ export default function ScriptsPage() {
         (e: React.FormEvent) => {
             e.preventDefault();
             if (!scriptName.trim() || selectedChapters.length === 0) return;
-            generateScriptTask({
+            const name = scriptName.trim();
+            // Fire-and-forget — events tracker polls for status
+            toast.info(`Generating "${name}"…`, { duration: 3000 });
+            generateScript({
                 bookId,
-                name: scriptName.trim(),
+                name,
                 chapters: selectedChapters,
                 previousScripts: selectedPrevScripts.length > 0 ? selectedPrevScripts : undefined,
+            }).catch((err) => {
+                toast.error(
+                    err instanceof ApiError
+                        ? err.isValidationError
+                            ? err.validationErrors.map((v) => v.message).join(", ")
+                            : err.businessError
+                        : "Generation failed — please retry"
+                );
             });
             setModalOpen(false);
             setScriptName("");
             setSelectedChapters([]);
             setSelectedPrevScripts([]);
         },
-        [scriptName, selectedChapters, selectedPrevScripts, bookId, generateScriptTask]
+        [scriptName, selectedChapters, selectedPrevScripts, bookId]
     );
 
     const toggleChapter = useCallback((chapterNum: number) => {

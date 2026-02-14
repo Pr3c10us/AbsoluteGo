@@ -3,6 +3,7 @@ package commands
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/Pr3c10us/absolutego/internals/domains/book"
 	"github.com/Pr3c10us/absolutego/internals/domains/event"
 	"github.com/Pr3c10us/absolutego/internals/domains/queue"
@@ -39,38 +40,31 @@ func (s *UploadChapter) Handle(p UploadChapterParameter) error {
 		return appError.BadRequest(errors.New("book does not exist"))
 	}
 
-	chapters, _ := s.book.GetChapters(b.Id, []int{p.Chapter})
-	for _, ch := range chapters {
-		if err = s.deleteChapter.Handle(ch.Id); err != nil {
-			return err
-		}
-	}
-
-	chapterId, err := s.book.CreateChapter(p.BookId, p.Chapter, "")
-	if err != nil {
-		return err
-	}
-
 	osFile, err := os.Open(p.File)
 	if err != nil {
 		return err
 	}
 	defer osFile.Close()
 
-	url, err := s.storage.UploadFile(s.env.Buckets.PageBucket, osFile)
+	url, err := s.storage.UploadFile(s.env.Buckets.ComicBucket, osFile)
 	if err != nil {
 		return errors.New("failed to upload chapter")
 	}
 
 	eventId, err := s.event.Create(event.Event{
-		Status:    event.StatusEnqueue,
-		Operation: event.OpAddChapter,
-		ChapterId: chapterId,
+		Status:      event.StatusEnqueue,
+		Operation:   event.OpAddChapter,
+		Description: fmt.Sprintf("adding chapter %d to %s", p.Chapter, b.Title),
+		BookId:      b.Id,
 	})
+	if err != nil {
+		return err
+	}
 
 	addChapterParameter := AddChapterParameter{
-		FileUrl:   url,
-		ChapterId: chapterId,
+		FileUrl: url,
+		Chapter: p.Chapter,
+		BookId:  b.Id,
 	}
 
 	var dataByte []byte

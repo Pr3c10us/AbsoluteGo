@@ -1,19 +1,14 @@
-package generatescript
+package generatesplits
 
 import (
-	"encoding/json"
+	"encoding/binary"
 	"github.com/Pr3c10us/absolutego/internals/domains/queueport"
-	commands2 "github.com/Pr3c10us/absolutego/internals/services/script/commands"
 )
 
 func Handler(c *queueport.Context) (*queueport.HandlerResult, error) {
-	var data commands2.GenerateScriptParameters
-	err := json.Unmarshal(c.Data, &data)
-	if err != nil {
-		return nil, err
-	}
-	_, id, err := c.Services.ScriptServices.GenerateScript.Handle(data)
+	scriptId := int64(binary.BigEndian.Uint64(c.Data))
+	err := c.Services.ScriptServices.GenerateSplits.Handle(scriptId)
 	return &queueport.HandlerResult{
-		ScriptId: id,
+		ScriptId: scriptId,
 	}, err
 }

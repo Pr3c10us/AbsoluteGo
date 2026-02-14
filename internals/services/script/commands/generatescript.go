@@ -3,7 +3,11 @@ package commands
 import (
 	"errors"
 	"fmt"
+	"io"
+	"math/rand"
+	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -22,33 +26,27 @@ type GenerateScript struct {
 }
 
 type GenerateScriptParameters struct {
-	ScriptId        int64
+	BookId          int64
+	Name            string
+	Chapters        []int
 	PreviousScripts []int64
 }
 
-func (s *GenerateScript) Handle(parameters GenerateScriptParameters) error {
-	scr, err := s.script.GetScript(parameters.ScriptId)
+func (s *GenerateScript) Handle(parameters GenerateScriptParameters) (string, int64, error) {
+	b, err := s.book.GetBook(parameters.BookId)
 	if err != nil {
-		return err
-	}
-	if s == nil {
-		return appError.BadRequest(errors.New("script does not exist"))
-	}
-
-	b, err := s.book.GetBook(scr.BookId)
-	if err != nil {
-		return err
+		return "", 0, err
 	}
 	if b == nil {
-		return appError.BadRequest(errors.New("book does not exist"))
+		return "", 0, appError.BadRequest(errors.New("book does not exist"))
 	}
 
-	fetchedChapters, err := s.book.GetChapters(b.Id, scr.Chapters)
+	fetchedChapters, err := s.book.GetChapters(b.Id, parameters.Chapters)
 	if err != nil {
-		return err
+		return "", 0, err
 	}
 	if len(fetchedChapters) < 1 {
-		return appError.BadRequest(errors.New("chapters does not exist"))
+		return "", 0, appError.BadRequest(errors.New("chapters does not exist"))
 	}
 
 	var chapterIds []int64
@@ -58,7 +56,7 @@ func (s *GenerateScript) Handle(parameters GenerateScriptParameters) error {
 
 	uploadedFiles, err := getUploads(chapterIds, s.book, s.ai)
 	if err != nil {
-		return err
+		return "", 0, err
 	}
 
 	var previousScripts []script.Script
@@ -68,22 +66,25 @@ func (s *GenerateScript) Handle(parameters GenerateScriptParameters) error {
 			Ids:    parameters.PreviousScripts,
 		})
 		if err != nil {
-			return err
+			return "", 0, err
 		}
 	}
 	concatenatedScript := s.concatScripts(previousScripts, b.Title)
-	scriptPrompt := prompts.ScriptPrompt(b.Title, scr.Chapters, &concatenatedScript)
+	scriptPrompt := prompts.ScriptPrompt(b.Title, parameters.Chapters, &concatenatedScript)
 
 	scriptResponse, err := s.ai.GenerateText(scriptPrompt, false, uploadedFiles)
 	if err != nil {
-		return err
+		return "", 0, err
 	}
 
-	err = s.script.UpdateScript(scr.Id, &script.Script{
-		Content: &scriptResponse.Response,
+	scriptId, err := s.script.CreateScript(&script.Script{
+		Name:     parameters.Name,
+		Content:  &scriptResponse.Response,
+		BookId:   b.Id,
+		Chapters: parameters.Chapters,
 	})
 
-	return err
+	return scriptResponse.Response, scriptId, err
 }
 
 func getUploads(chapterIds []int64, bookImplementation book.Interface, aiImplementation ai.Interface) ([]ai.UploadedFile, error) {
@@ -134,7 +135,7 @@ func getUploads(chapterIds []int64, bookImplementation book.Interface, aiImpleme
 			}
 		}
 
-		tmpPath, err := utils.DownloadPage(*j.page.URL)
+		tmpPath, err := downloadPage(*j.page.URL)
 		if err != nil {
 			return err
 		}
@@ -184,6 +185,33 @@ func getUploads(chapterIds []int64, bookImplementation book.Interface, aiImpleme
 	}
 
 	return uploads, nil
+}
+
+func downloadPage(url string) (string, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	tmpDir, err := utils.GetDirectory("tmp")
+	if err != nil {
+		return "", err
+	}
+
+	tmpFile := filepath.Join(tmpDir, fmt.Sprintf("%d-%d", time.Now().UnixMilli(), rand.Intn(1000000000)))
+
+	out, err := os.Create(tmpFile)
+	if err != nil {
+		return "", err
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, resp.Body); err != nil {
+		return "", err
+	}
+
+	return tmpFile, nil
 }
 
 func (s *GenerateScript) concatScripts(scripts []script.Script, bookTitle string) string {

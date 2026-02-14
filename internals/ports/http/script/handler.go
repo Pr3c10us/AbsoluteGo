@@ -63,7 +63,7 @@ func (h *Handler) GenerateScripts(c *gin.Context) {
 		return
 	}
 
-	response.NewSuccessResponse("chapter added", nil, nil).Send(c)
+	response.NewSuccessResponse("added to queue", nil, nil).Send(c)
 }
 
 func (h *Handler) DeleteScript(c *gin.Context) {
@@ -111,7 +111,7 @@ func (h *Handler) GenerateSplits(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.GenerateSplits.Handle(req.ScriptId); err != nil {
+	if err := h.service.CreateSplits.Handle(req.ScriptId); err != nil {
 		_ = c.Error(err)
 		return
 	}

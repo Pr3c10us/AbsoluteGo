@@ -9,11 +9,11 @@ import {
     fetchBooks,
     fetchChapters,
     deleteChapter,
+    addChapter,
     ApiError,
     type Book,
     type Chapter,
 } from "@/lib/api";
-import { useUpload } from "@/lib/upload-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -266,7 +266,6 @@ export default function BookDetailPage() {
     const bookId = Number(params.id);
     const queryClient = useQueryClient();
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const { uploadChapter } = useUpload();
 
     // -- state
     const [chapterNumber, setChapterNumber] = useState("");
@@ -327,14 +326,19 @@ export default function BookDetailPage() {
             e.preventDefault();
             const num = parseInt(chapterNumber, 10);
             if (isNaN(num) || num <= 0 || !selectedFile) return;
-            // Fire-and-forget — runs in background via global context
-            uploadChapter(bookId, num, selectedFile);
+            // Fire-and-forget — events tracker polls for status
+            toast.info(`Adding Ch.${num}…`, { description: selectedFile.name, duration: 3000 });
+            addChapter(bookId, num, selectedFile).catch((err) => {
+                toast.error(
+                    err instanceof ApiError ? err.businessError : "Upload failed — please retry"
+                );
+            });
             // Immediately reset form
             setChapterNumber("");
             setSelectedFile(null);
             if (fileInputRef.current) fileInputRef.current.value = "";
         },
-        [chapterNumber, selectedFile, bookId, uploadChapter]
+        [chapterNumber, selectedFile, bookId]
     );
 
     const handleConfirmDelete = useCallback(() => {

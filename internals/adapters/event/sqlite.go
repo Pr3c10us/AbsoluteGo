@@ -21,8 +21,8 @@ func NewEventImplementation(db *sql.DB) event.Interface {
 
 func (i *implementation) Create(event event.Event) (int64, error) {
 	res, err := sq.Insert("events").
-		Columns("status", "operation", "chapter_id", "script_id", "vab_id").
-		Values(event.Status, event.Operation, event.ChapterId, event.ScriptId, event.VabId).
+		Columns("status", "operation", "description", "book_id", "chapter_id", "script_id", "vab_id").
+		Values(event.Status, event.Operation, event.Description, event.BookId, event.ChapterId, event.ScriptId, event.VabId).
 		RunWith(i.db).
 		Exec()
 	if err != nil {
@@ -31,12 +31,35 @@ func (i *implementation) Create(event event.Event) (int64, error) {
 	return res.LastInsertId()
 }
 
-func (i *implementation) UpdateStatus(id int64, status event.Status) error {
-	if !status.IsValid() {
-		return fmt.Errorf("invalid status: %s", status)
+func (i *implementation) Update(id int64, e event.Event) error {
+	if e.Status != "" && !e.Status.IsValid() {
+		return fmt.Errorf("invalid status: %s", e.Status)
 	}
 
-	q := sq.Update("events").Where(sq.Eq{"id": id}).Set("status", status)
+	q := sq.Update("events").Where(sq.Eq{"id": id})
+
+	if e.Status != "" {
+		q = q.Set("status", e.Status)
+	}
+	if e.Operation != "" {
+		q = q.Set("operation", e.Operation)
+	}
+
+	if e.Description != "" {
+		q = q.Set("description", e.Description)
+	}
+	if e.BookId != 0 {
+		q = q.Set("book_id", e.BookId)
+	}
+	if e.ChapterId != 0 {
+		q = q.Set("chapter_id", e.ChapterId)
+	}
+	if e.ScriptId != 0 {
+		q = q.Set("script_id", e.ScriptId)
+	}
+	if e.VabId != 0 {
+		q = q.Set("vab_id", e.VabId)
+	}
 
 	res, err := q.RunWith(i.db).Exec()
 	if err != nil {
@@ -46,7 +69,7 @@ func (i *implementation) UpdateStatus(id int64, status event.Status) error {
 }
 
 func (i *implementation) GetEvents(filter event.Filter) ([]event.Event, error) {
-	q := sq.Select("id", "status", "operation", "chapter_id", "script_id", "vab_id").
+	q := sq.Select("id", "status", "operation", "description", "book_id", "chapter_id", "script_id", "vab_id", "updated_at").
 		From("events")
 
 	if filter.Status != "" {
@@ -56,6 +79,8 @@ func (i *implementation) GetEvents(filter event.Filter) ([]event.Event, error) {
 	if filter.Operation != "" {
 		q = q.Where(sq.Eq{"operation": filter.Operation})
 	}
+
+	q = q.OrderBy("updated_at DESC")
 
 	limit := filter.Limit
 	if limit <= 0 {
@@ -82,7 +107,7 @@ func (i *implementation) GetEvents(filter event.Filter) ([]event.Event, error) {
 	var events []event.Event
 	for rows.Next() {
 		var e event.Event
-		if err = rows.Scan(&e.Id, &e.Status, &e.Operation, &e.ChapterId, &e.ScriptId, &e.VabId); err != nil {
+		if err = rows.Scan(&e.Id, &e.Status, &e.Operation, &e.Description, &e.BookId, &e.ChapterId, &e.ScriptId, &e.VabId, &e.UpdatedAt); err != nil {
 			return nil, err
 		}
 		events = append(events, e)
@@ -92,12 +117,12 @@ func (i *implementation) GetEvents(filter event.Filter) ([]event.Event, error) {
 
 func (i *implementation) GetEvent(id int64) (*event.Event, error) {
 	var e event.Event
-	err := sq.Select("id", "status", "operation", "chapter_id", "script_id", "vab_id").
+	err := sq.Select("id", "status", "operation", "description", "book_id", "chapter_id", "script_id", "vab_id", "updated_at").
 		From("events").
 		Where(sq.Eq{"id": id}).
 		RunWith(i.db).
 		QueryRow().
-		Scan(&e.Id, &e.Status, &e.Operation, &e.ChapterId, &e.ScriptId, &e.VabId)
+		Scan(&e.Id, &e.Status, &e.Operation, &e.Description, &e.BookId, &e.ChapterId, &e.ScriptId, &e.VabId, &e.UpdatedAt)
 
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil

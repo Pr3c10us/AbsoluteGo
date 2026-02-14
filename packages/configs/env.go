@@ -17,6 +17,7 @@ type S3Credentials struct {
 }
 
 type Buckets struct {
+	ComicBucket string
 	PageBucket  string
 	PanelBucket string
 }
@@ -60,6 +61,7 @@ func LoadEnvironment() *EnvironmentVariables {
 			SecretAccessKey: getEnvOrError("S3_SECRET_ACCESS_KEY"),
 		},
 		Buckets: &Buckets{
+			ComicBucket: getEnvOrError("COMIC_BUCKET"),
 			PageBucket:  getEnvOrError("PAGE_BUCKET"),
 			PanelBucket: getEnvOrError("PANEL_BUCKET"),
 		},

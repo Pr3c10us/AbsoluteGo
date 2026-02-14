@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Pr3c10us/absolutego/internals/domains/script"
+	"github.com/Pr3c10us/absolutego/packages/appError"
 	"mime"
 	"os"
 	"path/filepath"
@@ -15,7 +16,6 @@ import (
 	"github.com/Pr3c10us/absolutego/internals/domains/ai"
 	"github.com/Pr3c10us/absolutego/internals/domains/book"
 	"github.com/Pr3c10us/absolutego/internals/domains/storage"
-	"github.com/Pr3c10us/absolutego/packages/appError"
 	"github.com/Pr3c10us/absolutego/packages/configs"
 	"github.com/Pr3c10us/absolutego/packages/utils"
 )
@@ -29,8 +29,9 @@ type AddChapter struct {
 }
 
 type AddChapterParameter struct {
-	FileUrl   string
-	ChapterId int64
+	FileUrl string
+	Chapter int
+	BookId  int64
 }
 
 type uploadTracker struct {
@@ -52,79 +53,96 @@ func (t *uploadTracker) All() []string {
 	return dst
 }
 
-func (s *AddChapter) Handle(p AddChapterParameter) error {
+func (s *AddChapter) Handle(p AddChapterParameter) (int64, error) {
 	file, err := utils.DownloadPage(p.FileUrl)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	fmt.Println(file)
 
-	c, err := s.book.GetChapter(p.ChapterId)
+	defer os.Remove(file)
+
+	b, err := s.book.GetBook(p.BookId)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	if c == nil {
-		return appError.BadRequest(errors.New("chapter does not exist"))
+	if b == nil {
+		return 0, appError.BadRequest(errors.New("book does not exist"))
+	}
+
+	chapters, _ := s.book.GetChapters(b.Id, []int{p.Chapter})
+	for _, ch := range chapters {
+		if err = s.deleteChapter.Handle(ch.Id); err != nil {
+			return 0, err
+		}
+	}
+
+	chapterId, err := s.book.CreateChapter(p.BookId, p.Chapter, "")
+	if err != nil {
+		return 0, err
 	}
 
 	outputDir, err := utils.GetDirectory("books")
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer os.RemoveAll(outputDir)
 
-	if err = s.processFile(outputDir, file, c.Number); err != nil {
-		return err
+	if err = s.processFile(outputDir, file, p.Chapter); err != nil {
+		return 0, err
 	}
 
 	pagePaths, err := utils.GetFilesInDir(outputDir)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	tracker := &uploadTracker{}
-	rollback := func() { s.storage.DeleteMany(tracker.All()) }
+	rollback := func() {
+		s.storage.DeleteMany(tracker.All())
+		_ = s.book.DeleteChapter(chapterId)
+	}
 
-	processedPages, cover, err := s.processPages(pagePaths, c.Id, tracker)
+	processedPages, cover, err := s.processPages(pagePaths, chapterId, tracker)
 	if err != nil {
 		rollback()
-		return err
+		return 0, err
 	}
 
 	if cover == nil || cover.URL == nil {
 		rollback()
-		return appError.BadRequest(errors.New("no cover image found in the uploaded file"))
+		return 0, appError.BadRequest(errors.New("no cover image found in the uploaded file"))
 	}
 
-	if err = s.book.UpdateChapter(c.Id, 0, *cover.URL); err != nil {
+	if err = s.book.UpdateChapter(chapterId, 0, *cover.URL); err != nil {
 		rollback()
-		return err
+		return 0, err
 	}
 
 	pages, err := s.book.CreateManyPage(processedPages)
 	if err != nil {
 		rollback()
-		return err
+		return 0, err
 	}
 
 	subDir, err := utils.GetSubDirs(outputDir)
 	if err != nil {
 		rollback()
-		return err
+		return 0, err
 	}
 
 	processedPanels, err := s.processPanels(subDir, pages, tracker)
 	if err != nil {
 		rollback()
-		return err
+		return 0, err
 	}
 
 	if _, err = s.book.CreateManyPanel(processedPanels); err != nil {
 		rollback()
-		return err
+		return 0, err
 	}
 
-	return nil
+	s.storage.DeleteFile(p.FileUrl)
+	return chapterId, nil
 }
 
 func (s *AddChapter) processFile(outputDir, filePath string, chapter int) error {

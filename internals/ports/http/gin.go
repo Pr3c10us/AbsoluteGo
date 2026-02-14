@@ -2,6 +2,7 @@ package http
 
 import (
 	"fmt"
+	"github.com/Pr3c10us/absolutego/internals/ports/http/event"
 
 	"github.com/Pr3c10us/absolutego/internals/adapters"
 	"github.com/Pr3c10us/absolutego/internals/ports/http/book"
@@ -38,6 +39,7 @@ func NewGinServer(services *services.Services, adapters *adapters.Adapters, envi
 	ginServer.health()
 	ginServer.bookRoutes()
 	ginServer.scriptRoutes()
+	ginServer.eventRoutes()
 
 	return ginServer
 }
@@ -77,6 +79,14 @@ func (server *GinServer) scriptRoutes() {
 		scriptRoute.GET("/split/:scriptId", handler.GetSplits)
 		scriptRoute.POST("/split/:scriptId", handler.GenerateSplits)
 		scriptRoute.DELETE("/split/:scriptId", handler.DeleteSplits)
+	}
+}
+
+func (server *GinServer) eventRoutes() {
+	handler := event.NewEventHandler(server.Services.EventServices)
+	eventRoute := server.Engine.Group("/api/v1/event")
+	{
+		eventRoute.GET("", handler.GetEvents)
 	}
 }
 

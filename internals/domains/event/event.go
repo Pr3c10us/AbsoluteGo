@@ -1,5 +1,7 @@
 package event
 
+import "time"
+
 type Status string
 
 const (
@@ -38,17 +40,20 @@ func (o Operation) IsValid() bool {
 }
 
 type Event struct {
-	Id        int64
-	Status    Status
-	Operation Operation
-	ChapterId int64
-	ScriptId  int64
-	VabId     int64
+	Id          int64
+	Status      Status
+	Operation   Operation
+	Description string
+	BookId      int64
+	ChapterId   int64
+	ScriptId    int64
+	VabId       int64
+	UpdatedAt   time.Time
 }
 
 type Filter struct {
-	Page      int
-	Limit     int
-	Status    Status
-	Operation Operation
+	Page      int       `form:"page" binding:"omitempty,min=1"`
+	Limit     int       `form:"limit" binding:"omitempty,min=1,max=100"`
+	Status    Status    `form:"status" binding:"omitempty,min=1"`
+	Operation Operation `form:"operation" binding:"omitempty,min=1"`
 }

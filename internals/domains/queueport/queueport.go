@@ -13,3 +13,9 @@ type Context struct {
 	BytesMessage         []byte
 	EnvironmentVariables *configs.EnvironmentVariables
 }
+
+type HandlerResult struct {
+	ChapterId int64
+	ScriptId  int64
+	VabId     int64
+}

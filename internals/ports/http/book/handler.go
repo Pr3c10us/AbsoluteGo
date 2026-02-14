@@ -117,7 +117,7 @@ func (h *Handler) UploadChapter(c *gin.Context) {
 		return
 	}
 
-	response.NewSuccessResponse("chapter added", nil, nil).Send(c)
+	response.NewSuccessResponse("added to queue", nil, nil).Send(c)
 }
 
 func (h *Handler) GetChapters(c *gin.Context) {

@@ -306,3 +306,56 @@ export function deleteSplits(scriptId: number): Promise<MutationResponse> {
     method: "DELETE",
   });
 }
+
+// ---- Event types ----------------------------------------------------------
+
+export type EventStatus =
+  | "enqueue"
+  | "processing"
+  | "failed"
+  | "successful"
+  | "retry";
+
+export type EventOperation =
+  | "add_chapter"
+  | "gen_script"
+  | "gen_script_split"
+  | "gen_audio"
+  | "gen_video"
+  | "merge_video";
+
+export interface EventItem {
+  Id: number;
+  Status: EventStatus;
+  Operation: EventOperation;
+  Description: string;
+  BookId: number;
+  ChapterId: number;
+  ScriptId: number;
+  VabId: number;
+  UpdatedAt: string;
+}
+
+export interface GetEventsResponse {
+  message: string;
+  data: { events: EventItem[] | null };
+}
+
+// ---- Event API calls ------------------------------------------------------
+
+export function fetchEvents(params?: {
+  page?: number;
+  limit?: number;
+  status?: EventStatus;
+  operation?: EventOperation;
+}): Promise<GetEventsResponse> {
+  const qs = new URLSearchParams();
+  if (params?.page) qs.set("page", String(params.page));
+  if (params?.limit) qs.set("limit", String(params.limit));
+  if (params?.status) qs.set("status", params.status);
+  if (params?.operation) qs.set("operation", params.operation);
+  const query = qs.toString();
+  return apiFetch<GetEventsResponse>(
+    `/api/v1/event${query ? `?${query}` : ""}`
+  );
+}
