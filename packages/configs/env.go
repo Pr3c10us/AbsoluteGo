@@ -2,6 +2,7 @@ package configs
 
 import (
 	"fmt"
+	"github.com/Pr3c10us/absolutego/packages/utils"
 	"github.com/joho/godotenv"
 	"log"
 	"os"
@@ -40,6 +41,7 @@ type EnvironmentVariables struct {
 	Buckets             *Buckets
 	Gemini              *GeminiConfig
 	AMQConnectionString string
+	HardwareAccelerator utils.HWAccel
 }
 
 func loadEnv() {
@@ -78,6 +80,7 @@ func LoadEnvironment() *EnvironmentVariables {
 			LiveModel: getEnvOrError("GEMINI_LIVE_MODEL"),
 		},
 		AMQConnectionString: getEnv("AMQ_CONNECTION_STRING", "amqp://guest:guest@localhost:5672/"),
+		HardwareAccelerator: utils.HWAccel(getEnv("HARDWARE_ACCELERATOR", string(utils.HWAccelNone))),
 	}
 }
 

@@ -1,6 +1,9 @@
 package script
 
-import "github.com/Pr3c10us/absolutego/internals/domains/book"
+import (
+	"github.com/Pr3c10us/absolutego/internals/domains/book"
+	"github.com/Pr3c10us/absolutego/packages/utils"
+)
 
 type Script struct {
 	Id       int64   `json:"id"`
@@ -18,14 +21,14 @@ type Query struct {
 }
 
 type Split struct {
-	Id              int64      `json:"id"`
-	ScriptId        int64      `json:"scriptId"`
-	Content         *string    `json:"content"`
-	PreviousContent *string    `json:"previousContent"`
-	PanelId         *int64     `json:"panelId"`
-	Effect          *string    `json:"effect"`
-	AudioURL        *string    `json:"audioURL"`
-	AudioDuration   *float64   `json:"audioDuration"`
-	VideoURL        *string    `json:"VideoURL"`
-	Panel           book.Panel `json:"panel"`
+	Id              int64         `json:"id"`
+	ScriptId        int64         `json:"scriptId"`
+	Content         *string       `json:"content"`
+	PreviousContent *string       `json:"previousContent"`
+	PanelId         *int64        `json:"panelId"`
+	Effect          *utils.Effect `json:"effect"`
+	AudioURL        *string       `json:"audioURL"`
+	AudioDuration   *float64      `json:"audioDuration"`
+	VideoURL        *string       `json:"VideoURL"`
+	Panel           book.Panel    `json:"panel"`
 }

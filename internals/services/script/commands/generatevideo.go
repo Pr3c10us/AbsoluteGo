@@ -9,6 +9,7 @@ import (
 	"github.com/Pr3c10us/absolutego/packages/configs"
 	"github.com/Pr3c10us/absolutego/packages/utils"
 	"os"
+	"path/filepath"
 )
 
 type GenerateVideo struct {
@@ -35,21 +36,73 @@ func (service *GenerateVideo) Handle(id int64) (int64, error) {
 		return 0, appError.BadRequest(errors.New("script does not exist"))
 	}
 
+	chapters, err := service.bookImplementation.GetChapters(scr.BookId, scr.Chapters)
+	if err != nil {
+		return 0, err
+	}
+	if len(chapters) < 1 {
+		return 0, appError.BadRequest(errors.New("script does not exist"))
+	}
+
 	file, err := utils.DownloadPage(*split.Panel.URL)
 	if err != nil {
 		return 0, err
 	}
 	defer os.Remove(file)
-	
+
+	audio, err := utils.DownloadPage(*split.AudioURL)
+	if err != nil {
+		return 0, err
+	}
+	defer os.Remove(audio)
+
+	blurImage, err := utils.DownloadPage(chapters[0].BlurURL)
+	if err != nil {
+		return 0, err
+	}
+	defer os.Remove(blurImage)
+
 	vidData := utils.VideoData{
 		Panel:    file,
-		Duration: split.AudioDuration,
-		Effect:   ,
+		Duration: *split.AudioDuration,
+		Effect:   *split.Effect,
 	}
 
+	videoDir, err := utils.GetDirectory("tmp")
+	if err != nil {
+		return 0, err
+	}
+	defer os.RemoveAll(videoDir)
+
+	slideshowPath := filepath.Join(videoDir, "slideshow.mp4")
+
+	err = utils.CreateVideoFromImages([]utils.VideoData{
+		vidData,
+	}, slideshowPath, &utils.CreateVideoOptions{
+		FPS:             30,
+		Width:           1080,
+		Height:          1920,
+		BackgroundImage: blurImage,
+		HWAccel:         service.environmentVariable.HardwareAccelerator,
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	videoPath := filepath.Join(videoDir, "video.mp4")
+	err = utils.MergeAudioToVideo(slideshowPath, audio, videoPath, &utils.MergeAudioOptions{
+		AudioFade: true,
+		Loop:      true,
+		Volume:    1,
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	return scr.Id, nil
 }
 
-func NewAddChapter(
+func NewGenerateVideo(
 	bookImplementation book.Interface,
 	storageImplementation storage.Interface,
 	environmentVariable *configs.EnvironmentVariables,
