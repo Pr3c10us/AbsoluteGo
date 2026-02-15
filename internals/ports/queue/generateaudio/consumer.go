@@ -1,14 +1,19 @@
-package generatesplits
+package generateaudio
 
 import (
-	"encoding/binary"
+	"encoding/json"
 	"github.com/Pr3c10us/absolutego/internals/domains/queueport"
+	commands2 "github.com/Pr3c10us/absolutego/internals/services/script/commands"
 )
 
 func Handler(c *queueport.Context) (*queueport.HandlerResult, error) {
-	scriptId := int64(binary.BigEndian.Uint64(c.Data))
-	err := c.Services.ScriptServices.GenerateSplits.Handle(scriptId)
+	var data commands2.AudioParameter
+	err := json.Unmarshal(c.Data, &data)
+	if err != nil {
+		return nil, err
+	}
+	id, err := c.Services.ScriptServices.GenerateAudio.Handle(data)
 	return &queueport.HandlerResult{
-		ScriptId: scriptId,
+		ScriptId: id,
 	}, err
 }

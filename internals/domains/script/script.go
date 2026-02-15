@@ -18,10 +18,13 @@ type Query struct {
 }
 
 type Split struct {
-	Id       int64      `json:"id"`
-	ScriptId int64      `json:"scriptId"`
-	Content  *string    `json:"content"`
-	PanelId  *int64     `json:"panelId"`
-	Effect   *string    `json:"effect"`
-	Panel    book.Panel `json:"panel"`
+	Id              int64      `json:"id"`
+	ScriptId        int64      `json:"scriptId"`
+	Content         *string    `json:"content"`
+	PreviousContent *string    `json:"previousContent"`
+	PanelId         *int64     `json:"panelId"`
+	Effect          *string    `json:"effect"`
+	AudioURL        *string    `json:"audioURL"`
+	VideoURL        *string    `json:"VideoURL"`
+	Panel           book.Panel `json:"panel"`
 }

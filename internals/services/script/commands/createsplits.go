@@ -54,7 +54,7 @@ func (service *CreateSplits) Handle(scriptId int64) error {
 	}
 
 	err = service.queueImplementation.Publish(&queue.MessageParams{
-		Queue:   queue.QueueGenScript,
+		Queue:   queue.QueueGenScriptSplit,
 		Message: qMsg,
 	})
 	if err != nil {

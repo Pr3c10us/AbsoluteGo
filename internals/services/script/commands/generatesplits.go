@@ -107,17 +107,32 @@ func (s *GenerateSplits) Handle(scriptId int64) error {
 	}
 
 	splits := make([]script.Split, 0, len(splitMap))
+	var previousContent string
 	for _, key := range orderedKeys {
 		group := splitMap[key]
+
+		var prev *string
+		if previousContent != "" {
+			p := previousContent
+			prev = &p
+		}
+
 		split := script.Split{
-			ScriptId: scr.Id,
-			Content:  &group.content,
-			Effect:   &group.effect,
-			PanelId:  group.panelId,
+			ScriptId:        scr.Id,
+			Content:         &group.content,
+			PreviousContent: prev,
+			Effect:          &group.effect,
+			PanelId:         group.panelId,
 		}
 		splits = append(splits, split)
-	}
 
+		if previousContent == "" {
+			previousContent = group.content
+		} else {
+			previousContent = previousContent + "\n" + group.content
+		}
+	}
+	
 	err = s.script.DeleteSplits(scriptId)
 	if err != nil {
 		return err

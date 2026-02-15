@@ -179,11 +179,20 @@ func (i *implementation) UpdateSplit(id int64, split *script.Split) error {
 	if split.Content != nil {
 		q = q.Set("content", split.Content)
 	}
+	if split.PreviousContent != nil {
+		q = q.Set("previous_content", split.PreviousContent)
+	}
 	if split.PanelId != nil {
 		q = q.Set("panel_id", split.PanelId)
 	}
 	if split.Effect != nil {
 		q = q.Set("effect", split.Effect)
+	}
+	if split.AudioURL != nil {
+		q = q.Set("audio_url", split.AudioURL)
+	}
+	if split.VideoURL != nil {
+		q = q.Set("video_url", split.VideoURL)
 	}
 	res, err := q.RunWith(i.db).Exec()
 	if err != nil {
@@ -213,7 +222,7 @@ func (i *implementation) DeleteSplit(ids []int64) error {
 
 func (i *implementation) GetSplits(scriptId int64) ([]script.Split, error) {
 	rows, err := sq.Select(
-		"splits.id", "splits.script_id", "splits.content", "splits.panel_id", "splits.effect",
+		"splits.id", "splits.script_id", "splits.content", "splits.previous_content", "splits.panel_id", "splits.effect", "splits.audio_url", "splits.video_url",
 		"panels.id", "panels.page_id", "panels.url", "panels.panel_number", "panels.updated_at",
 	).
 		From("splits").
@@ -236,7 +245,7 @@ func (i *implementation) GetSplits(scriptId int64) ([]script.Split, error) {
 		var panelUpdatedAt sql.NullTime
 
 		if err := rows.Scan(
-			&s.Id, &s.ScriptId, &s.Content, &s.PanelId, &s.Effect,
+			&s.Id, &s.ScriptId, &s.Content, &s.PreviousContent, &s.PanelId, &s.Effect, &s.AudioURL, &s.VideoURL,
 			&panelId, &panelPageId, &panelURL, &panelNumber, &panelUpdatedAt,
 		); err != nil {
 			return nil, err
@@ -270,7 +279,7 @@ func (i *implementation) GetSplit(id int64) (*script.Split, error) {
 	var panelUpdatedAt sql.NullTime
 
 	err := sq.Select(
-		"splits.id", "splits.script_id", "splits.content", "splits.panel_id", "splits.effect",
+		"splits.id", "splits.script_id", "splits.content", "splits.previous_content", "splits.panel_id", "splits.effect", "splits.audio_url", "splits.video_url",
 		"panels.id", "panels.page_id", "panels.url", "panels.panel_number", "panels.updated_at",
 	).
 		From("splits").
@@ -279,7 +288,7 @@ func (i *implementation) GetSplit(id int64) (*script.Split, error) {
 		RunWith(i.db).
 		QueryRow().
 		Scan(
-			&s.Id, &s.ScriptId, &s.Content, &s.PanelId, &s.Effect,
+			&s.Id, &s.ScriptId, &s.Content, &s.PreviousContent, &s.PanelId, &s.Effect, &s.AudioURL, &s.VideoURL,
 			&panelId, &panelPageId, &panelURL, &panelNumber, &panelUpdatedAt,
 		)
 	if errors.Is(err, sql.ErrNoRows) {

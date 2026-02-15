@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/Pr3c10us/absolutego/internals/ports/queue/generateaudio"
 	"sync"
 
 	"github.com/Pr3c10us/absolutego/internals/adapters"
@@ -38,14 +39,15 @@ func NewAMQConsumer(environmentVariables *configs.EnvironmentVariables, amqp *am
 		adapter:              adapters,
 	}
 
-	amqConsumer.Consume(addchapter.Handler, string(queue.QueueAddChapter))
-	amqConsumer.Consume(generatescript.Handler, string(queue.QueueGenScript))
-	amqConsumer.Consume(generatesplits.Handler, string(queue.QueueGenScript))
+	amqConsumer.Consume(addchapter.Handler, string(queue.QueueAddChapter), 5)
+	amqConsumer.Consume(generatescript.Handler, string(queue.QueueGenScript), 20)
+	amqConsumer.Consume(generatesplits.Handler, string(queue.QueueGenScriptSplit), 20)
+	amqConsumer.Consume(generateaudio.Handler, string(queue.QueueGenAudio), 20)
 
 	return amqConsumer
 }
 
-func (amqConsumer *AMQConsumer) Consume(handler func(c *queueport.Context) (*queueport.HandlerResult, error), queueName string) {
+func (amqConsumer *AMQConsumer) Consume(handler func(c *queueport.Context) (*queueport.HandlerResult, error), queueName string, maxWorkers int) {
 	q, err := amqConsumer.amqp.QueueDeclare(
 		queueName, // name
 		false,     // durable
@@ -71,7 +73,6 @@ func (amqConsumer *AMQConsumer) Consume(handler func(c *queueport.Context) (*que
 		panic(fmt.Sprintf("Failed to register %v consumer: %v", queueName, err))
 	}
 
-	const maxWorkers = 5
 	var wg sync.WaitGroup
 	for i := 0; i < maxWorkers; i++ {
 		wg.Add(1)

@@ -190,9 +190,7 @@ func (g *GoogleAI) GenerateAudioLive(text string, voice ai.Voice) (*ai.Response,
 }
 
 func (g *GoogleAI) GenerateAudio(text string, voice ai.Voice) (*ai.Response, error) {
-	response, err := utils.WithRetry(func() (*ai.Response, error) {
-		return g.GenerateAudioLive(text, voice)
-	}, 10, 300*time.Millisecond)
+	response, err := g.GenerateAudioLive(text, voice)
 	return response, err
 }
 
@@ -232,9 +230,7 @@ func (g *GoogleAI) GenerateText(prompt string, useFastModel bool, uploadedFiles 
 		},
 	}
 
-	response, err := utils.WithRetry(func() (*genai.GenerateContentResponse, error) {
-		return g.client.Models.GenerateContent(ctx, model, contents, genConfig)
-	}, 10, 300*time.Millisecond)
+	response, err := g.client.Models.GenerateContent(ctx, model, contents, genConfig)
 	if err != nil {
 		return nil, fmt.Errorf("generate content: %w", err)
 	}

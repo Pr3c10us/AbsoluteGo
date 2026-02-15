@@ -11,14 +11,14 @@ import (
 	"github.com/Pr3c10us/absolutego/internals/domains/script"
 )
 
-type CreateAudio struct {
+type CreateAudioAll struct {
 	eventImplementation  event.Interface
 	bookImplementation   book.Interface
 	queueImplementation  queue.Interface
 	scriptImplementation script.Interface
 }
 
-func (service *CreateAudio) Handle(scriptId int64, voice ai.Voice, voiceStyle string) error {
+func (service *CreateAudioAll) Handle(scriptId int64, voice ai.Voice, voiceStyle string) error {
 	scr, err := service.scriptImplementation.GetScript(scriptId)
 	if err != nil {
 		return err
@@ -72,19 +72,19 @@ func (service *CreateAudio) Handle(scriptId int64, voice ai.Voice, voiceStyle st
 		}
 
 		err = service.queueImplementation.Publish(&queue.MessageParams{
-			Queue:   queue.QueueGenScript,
+			Queue:   queue.QueueGenAudio,
 			Message: qMsg,
 		})
 		if err != nil {
 			return err
 		}
-
 	}
+
 	return nil
 }
 
-func NewCreateAudio(eventImplementation event.Interface, bookImplementation book.Interface, queueImplementation queue.Interface, scriptImplementation script.Interface) *CreateScript {
-	return &CreateScript{
+func NewCreateAudioAll(eventImplementation event.Interface, bookImplementation book.Interface, queueImplementation queue.Interface, scriptImplementation script.Interface) *CreateAudioAll {
+	return &CreateAudioAll{
 		eventImplementation, bookImplementation, queueImplementation, scriptImplementation,
 	}
 }

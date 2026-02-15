@@ -49,31 +49,16 @@ CREATE TABLE IF NOT EXISTS scripts
 
 CREATE TABLE IF NOT EXISTS splits
 (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    script_id INTEGER NOT NULL,
-    content   TEXT,
-    panel_id  INTEGER,
-    effect    TEXT,
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    script_id        INTEGER NOT NULL,
+    content          TEXT,
+    previous_content TEXT,
+    panel_id         INTEGER,
+    effect           TEXT,
+    audio_url        TEXT,
+    video_url        TEXT,
     FOREIGN KEY (script_id) REFERENCES scripts (id) ON DELETE CASCADE,
     FOREIGN KEY (panel_id) REFERENCES panels (id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS audios
-(
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    split_id    INTEGER NOT NULL,
-    voice       TEXT,
-    voice_style TEXT,
-    url         TEXT,
-    FOREIGN KEY (split_id) REFERENCES splits (id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS videos
-(
-    id       INTEGER PRIMARY KEY AUTOINCREMENT,
-    url      TEXT,
-    split_id INTEGER NOT NULL,
-    FOREIGN KEY (split_id) REFERENCES splits (id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS vabs
@@ -107,5 +92,3 @@ CREATE INDEX IF NOT EXISTS idx_panels_page_id ON panels (page_id);
 CREATE INDEX IF NOT EXISTS idx_scripts_book_id ON scripts (book_id);
 CREATE INDEX IF NOT EXISTS idx_splits_script_id ON splits (script_id);
 CREATE INDEX IF NOT EXISTS idx_splits_panel_id ON splits (panel_id);
-CREATE INDEX IF NOT EXISTS idx_audios_split_id ON audios (split_id);
-CREATE INDEX IF NOT EXISTS idx_videos_split_id ON videos (split_id);
