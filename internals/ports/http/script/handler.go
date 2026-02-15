@@ -117,45 +117,45 @@ func (h *Handler) GenerateSplits(c *gin.Context) {
 		return
 	}
 
-	response.NewSuccessResponse("", gin.H{"message": "splits generated"}, nil).Send(c)
+	response.NewSuccessResponse("", gin.H{"message": "added to queue"}, nil).Send(c)
 }
 
-func (h *Handler) GenerateAudioAll(c *gin.Context) {
+func (h *Handler) GenerateAudios(c *gin.Context) {
 	var body struct {
 		ScriptId   int64  `uri:"scriptId" binding:"required,gt=0"`
 		Voice      string `json:"voice" binding:"required,oneof=Zephyr Puck Charon Kore Fenrir Leda Orus Aoede Callirrhoe Autonoe Enceladus Iapetus Umbriel Algieba Despina Erinome Algenib Rasalgethi Laomedeia Achernar Alnilam Schedar Gacrux Pulcherrima Achird Zubenelgenubi Vindemiatrix Sadachbia Sadaltager Sulafat"`
-		VoiceStyle string `json:"voiceStyle" binding:"omitempty,"`
+		VoiceStyle string `json:"voiceStyle" binding:"omitempty"`
 	}
 	if err := c.ShouldBind(&body); err != nil {
 		_ = c.Error(validator.ValidateRequest(err))
 		return
 	}
 
-	if err := h.service.CreateAudioAll.Handle(body.ScriptId, ai.Voice(body.Voice), body.VoiceStyle); err != nil {
+	if err := h.service.CreateAudios.Handle(body.ScriptId, ai.Voice(body.Voice), body.VoiceStyle); err != nil {
 		_ = c.Error(err)
 		return
 	}
 
-	response.NewSuccessResponse("", gin.H{"message": "splits generated"}, nil).Send(c)
+	response.NewSuccessResponse("", gin.H{"message": "added to queue"}, nil).Send(c)
 }
 
 func (h *Handler) GenerateAudio(c *gin.Context) {
 	var body struct {
 		SplitId    int64  `uri:"splitId" binding:"required,gt=0"`
 		Voice      string `json:"voice" binding:"required,oneof=Zephyr Puck Charon Kore Fenrir Leda Orus Aoede Callirrhoe Autonoe Enceladus Iapetus Umbriel Algieba Despina Erinome Algenib Rasalgethi Laomedeia Achernar Alnilam Schedar Gacrux Pulcherrima Achird Zubenelgenubi Vindemiatrix Sadachbia Sadaltager Sulafat"`
-		VoiceStyle string `json:"voiceStyle" binding:"omitempty,"`
+		VoiceStyle string `json:"voiceStyle" binding:"omitempty"`
 	}
 	if err := c.ShouldBind(&body); err != nil {
 		_ = c.Error(validator.ValidateRequest(err))
 		return
 	}
 
-	if err := h.service.CreateAudioAll.Handle(body.SplitId, ai.Voice(body.Voice), body.VoiceStyle); err != nil {
+	if err := h.service.CreateAudio.Handle(body.SplitId, ai.Voice(body.Voice), body.VoiceStyle); err != nil {
 		_ = c.Error(err)
 		return
 	}
 
-	response.NewSuccessResponse("", gin.H{"message": "splits generated"}, nil).Send(c)
+	response.NewSuccessResponse("", gin.H{"message": "added to queue"}, nil).Send(c)
 }
 
 func (h *Handler) DeleteSplits(c *gin.Context) {

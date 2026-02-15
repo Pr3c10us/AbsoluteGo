@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS splits
     panel_id         INTEGER,
     effect           TEXT,
     audio_url        TEXT,
+    audio_duration   REAL,
     video_url        TEXT,
     FOREIGN KEY (script_id) REFERENCES scripts (id) ON DELETE CASCADE,
     FOREIGN KEY (panel_id) REFERENCES panels (id) ON DELETE CASCADE

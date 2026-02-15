@@ -54,7 +54,7 @@ func (s *UploadChapter) Handle(p UploadChapterParameter) error {
 	eventId, err := s.event.Create(event.Event{
 		Status:      event.StatusEnqueue,
 		Operation:   event.OpAddChapter,
-		Description: fmt.Sprintf("adding chapter %d to %s", p.Chapter, b.Title),
+		Description: fmt.Sprintf("Add chapter %d to %s", p.Chapter, b.Title),
 		BookId:      b.Id,
 	})
 	if err != nil {

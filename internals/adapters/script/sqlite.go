@@ -133,8 +133,8 @@ func (i *implementation) GetScript(id int64) (*script.Script, error) {
 
 func (i *implementation) CreateSplit(split *script.Split) (int64, error) {
 	res, err := sq.Insert("splits").
-		Columns("script_id", "content", "panel_id", "effect").
-		Values(split.ScriptId, split.Content, split.PanelId, split.Effect).
+		Columns("script_id", "content", "previous_content", "panel_id", "effect").
+		Values(split.ScriptId, split.Content, split.PreviousContent, split.PanelId, split.Effect).
 		RunWith(i.db).
 		Exec()
 	if err != nil {
@@ -144,27 +144,40 @@ func (i *implementation) CreateSplit(split *script.Split) (int64, error) {
 }
 
 func (i *implementation) CreateManySplit(splits []script.Split) ([]script.Split, error) {
+	if len(splits) == 0 {
+		return nil, nil
+	}
+
 	tx, err := i.db.Begin()
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
 
+	query := sq.Insert("splits").
+		Columns("script_id", "content", "previous_content", "panel_id", "effect")
+
+	for _, s := range splits {
+		query = query.Values(s.ScriptId, s.Content, s.PreviousContent, s.PanelId, s.Effect)
+	}
+
+	res, err := query.RunWith(tx).Exec()
+	if err != nil {
+		return nil, err
+	}
+
+	lastID, err := res.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+
+	// SQLite guarantees contiguous rowids for multi-row inserts.
+	// LastInsertId() returns the ID of the *last* row inserted.
+	firstID := lastID - int64(len(splits)) + 1
+
 	result := make([]script.Split, len(splits))
 	for idx, s := range splits {
-		res, err := sq.Insert("splits").
-			Columns("script_id", "content", "panel_id", "effect").
-			Values(s.ScriptId, s.Content, s.PanelId, s.Effect).
-			RunWith(tx).
-			Exec()
-		if err != nil {
-			return nil, err
-		}
-		id, err := res.LastInsertId()
-		if err != nil {
-			return nil, err
-		}
-		s.Id = id
+		s.Id = firstID + int64(idx)
 		result[idx] = s
 	}
 
@@ -190,6 +203,9 @@ func (i *implementation) UpdateSplit(id int64, split *script.Split) error {
 	}
 	if split.AudioURL != nil {
 		q = q.Set("audio_url", split.AudioURL)
+	}
+	if split.AudioDuration != nil {
+		q = q.Set("audio_duration", split.AudioDuration)
 	}
 	if split.VideoURL != nil {
 		q = q.Set("video_url", split.VideoURL)
@@ -222,7 +238,7 @@ func (i *implementation) DeleteSplit(ids []int64) error {
 
 func (i *implementation) GetSplits(scriptId int64) ([]script.Split, error) {
 	rows, err := sq.Select(
-		"splits.id", "splits.script_id", "splits.content", "splits.previous_content", "splits.panel_id", "splits.effect", "splits.audio_url", "splits.video_url",
+		"splits.id", "splits.script_id", "splits.content", "splits.previous_content", "splits.panel_id", "splits.effect", "splits.audio_url", "splits.audio_duration", "splits.video_url",
 		"panels.id", "panels.page_id", "panels.url", "panels.panel_number", "panels.updated_at",
 	).
 		From("splits").
@@ -245,7 +261,7 @@ func (i *implementation) GetSplits(scriptId int64) ([]script.Split, error) {
 		var panelUpdatedAt sql.NullTime
 
 		if err := rows.Scan(
-			&s.Id, &s.ScriptId, &s.Content, &s.PreviousContent, &s.PanelId, &s.Effect, &s.AudioURL, &s.VideoURL,
+			&s.Id, &s.ScriptId, &s.Content, &s.PreviousContent, &s.PanelId, &s.Effect, &s.AudioURL, &s.AudioDuration, &s.VideoURL,
 			&panelId, &panelPageId, &panelURL, &panelNumber, &panelUpdatedAt,
 		); err != nil {
 			return nil, err
@@ -279,7 +295,7 @@ func (i *implementation) GetSplit(id int64) (*script.Split, error) {
 	var panelUpdatedAt sql.NullTime
 
 	err := sq.Select(
-		"splits.id", "splits.script_id", "splits.content", "splits.previous_content", "splits.panel_id", "splits.effect", "splits.audio_url", "splits.video_url",
+		"splits.id", "splits.script_id", "splits.content", "splits.previous_content", "splits.panel_id", "splits.effect", "splits.audio_url", "splits.audio_duration", "splits.video_url",
 		"panels.id", "panels.page_id", "panels.url", "panels.panel_number", "panels.updated_at",
 	).
 		From("splits").
@@ -288,7 +304,7 @@ func (i *implementation) GetSplit(id int64) (*script.Split, error) {
 		RunWith(i.db).
 		QueryRow().
 		Scan(
-			&s.Id, &s.ScriptId, &s.Content, &s.PreviousContent, &s.PanelId, &s.Effect, &s.AudioURL, &s.VideoURL,
+			&s.Id, &s.ScriptId, &s.Content, &s.PreviousContent, &s.PanelId, &s.Effect, &s.AudioURL, &s.AudioDuration, &s.VideoURL,
 			&panelId, &panelPageId, &panelURL, &panelNumber, &panelUpdatedAt,
 		)
 	if errors.Is(err, sql.ErrNoRows) {

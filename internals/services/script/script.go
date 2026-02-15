@@ -25,8 +25,9 @@ type Commands struct {
 	CreateSplits   *commands.CreateSplits
 	GenerateSplits *commands.GenerateSplits
 	GenerateAudio  *commands.GenerateAudio
+	GenerateAudios *commands.GenerateAudios
 	CreateAudio    *commands.CreateAudio
-	CreateAudioAll *commands.CreateAudioAll
+	CreateAudios   *commands.CreateAudios
 }
 
 type Queries struct {
@@ -44,8 +45,9 @@ func NewScriptServices(script script.Interface, book book.Interface, ai ai.Inter
 			CreateSplits:   commands.NewCreateSplits(eventImplementation, book, queueImplementation, script),
 			GenerateSplits: commands.NewGenerateSplits(script, book, ai),
 			GenerateAudio:  commands.NewGenerateAudio(script, ai, storageImplementation, environmentVariables),
+			GenerateAudios: commands.NewGenerateAudios(book, script, ai, storageImplementation, environmentVariables),
 			CreateAudio:    commands.NewCreateAudio(eventImplementation, book, queueImplementation, script),
-			CreateAudioAll: commands.NewCreateAudioAll(eventImplementation, book, queueImplementation, script),
+			CreateAudios:   commands.NewCreateAudios(eventImplementation, book, queueImplementation, script),
 		},
 		Queries: Queries{
 			GetScripts: queries.NewGetScripts(script),

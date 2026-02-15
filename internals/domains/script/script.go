@@ -25,6 +25,7 @@ type Split struct {
 	PanelId         *int64     `json:"panelId"`
 	Effect          *string    `json:"effect"`
 	AudioURL        *string    `json:"audioURL"`
+	AudioDuration   *float64   `json:"audioDuration"`
 	VideoURL        *string    `json:"VideoURL"`
 	Panel           book.Panel `json:"panel"`
 }

@@ -1,7 +1,9 @@
 package commands
 
 import (
+	"encoding/base64"
 	"errors"
+	"fmt"
 	"github.com/Pr3c10us/absolutego/internals/domains/ai"
 	"github.com/Pr3c10us/absolutego/internals/domains/script"
 	"github.com/Pr3c10us/absolutego/internals/domains/storage"
@@ -10,6 +12,7 @@ import (
 	"github.com/Pr3c10us/absolutego/packages/utils"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 type GenerateAudio struct {
@@ -49,18 +52,27 @@ func (service *GenerateAudio) Handle(parameter AudioParameter) (int64, error) {
 		return 0, err
 	}
 
+	buf, err := base64.StdEncoding.DecodeString(resp.Response)
+	if err != nil {
+		return 0, fmt.Errorf("failed to decode base64: %w", err)
+	}
+	silence := 1.0
+
+	duration := utils.BufDuration(buf, 24000, 1, 2) + silence
+
 	tempDir, err := utils.GetDirectory("tmp")
 	if err != nil {
 		return 0, err
 	}
 	defer os.RemoveAll(tempDir)
+	audioPath := filepath.Join(tempDir, "audio.wav")
 
-	err = utils.WriteWAV(tempDir, resp.Response, 24000, 1, 16)
+	err = utils.WriteWAV(audioPath, resp.Response, 24000, 1, 16, silence)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	osFile, err := os.Open(tempDir)
+	osFile, err := os.Open(audioPath)
 	if err != nil {
 		return 0, err
 	}
@@ -72,7 +84,8 @@ func (service *GenerateAudio) Handle(parameter AudioParameter) (int64, error) {
 	}
 
 	err = service.scriptImplementation.UpdateSplit(split.Id, &script.Split{
-		AudioURL: &url,
+		AudioURL:      &url,
+		AudioDuration: &duration,
 	})
 	if err != nil {
 		return 0, err

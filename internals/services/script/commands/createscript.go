@@ -91,29 +91,32 @@ func buildOperation(bookName string, chapters []int) string {
 	copy(sorted, chapters)
 	sort.Ints(sorted)
 
-	if isContiguousRange(sorted) {
-		if len(sorted) == 1 {
-			return fmt.Sprintf("Create script from %q ch. %d", bookName, sorted[0])
-		}
-		return fmt.Sprintf("Create script from %q ch. %d to %d", bookName, sorted[0], sorted[len(sorted)-1])
-	}
-
 	parts := make([]string, len(sorted))
 	for i, ch := range sorted {
 		parts[i] = fmt.Sprintf("%d", ch)
 	}
-	return fmt.Sprintf("Create script from %q ch. %s", bookName, strings.Join(parts, ", "))
+	return fmt.Sprintf("Create script from %q ch. %s", bookName, formatChapterList(sorted))
 }
 
-func isContiguousRange(sorted []int) bool {
-	for i := 1; i < len(sorted); i++ {
-		if sorted[i] != sorted[i-1]+1 {
-			return false
+func formatChapterList(sorted []int) string {
+	var parts []string
+	i := 0
+	for i < len(sorted) {
+		start := sorted[i]
+		end := start
+		for i+1 < len(sorted) && sorted[i+1] == end+1 {
+			i++
+			end = sorted[i]
 		}
+		if start == end {
+			parts = append(parts, fmt.Sprintf("%d", start))
+		} else {
+			parts = append(parts, fmt.Sprintf("%d-%d", start, end))
+		}
+		i++
 	}
-	return true
+	return strings.Join(parts, ", ")
 }
-
 func NewCreateScript(eventImplementation event.Interface, bookImplementation book.Interface, queueImplementation queue.Interface, scriptImplementation script.Interface) *CreateScript {
 	return &CreateScript{
 		eventImplementation, bookImplementation, queueImplementation, scriptImplementation,

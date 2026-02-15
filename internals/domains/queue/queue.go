@@ -7,6 +7,7 @@ const (
 	QueueGenScript      Queue = "gen_script"
 	QueueGenScriptSplit Queue = "gen_script_split"
 	QueueGenAudio       Queue = "gen_audio"
+	QueueGenAudios      Queue = "gen_audios"
 	QueueGenVideo       Queue = "gen_video"
 	QueueMergeVideo     Queue = "merge_video"
 )

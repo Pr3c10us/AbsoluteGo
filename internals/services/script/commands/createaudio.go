@@ -45,8 +45,8 @@ func (service *CreateAudio) Handle(id int64, voice ai.Voice, voiceStyle string) 
 
 	eventId, err := service.eventImplementation.Create(event.Event{
 		Status:      event.StatusEnqueue,
-		Operation:   event.OpGenScript,
-		Description: fmt.Sprintf("generate audio for split %d in script %s for %s", split.Id, scr.Name, b.Title),
+		Operation:   event.OpGenAudio,
+		Description: fmt.Sprintf("Audio generation for %s, script %q, split %d", b.Title, scr.Name, split.Id),
 		BookId:      b.Id,
 	})
 	if err != nil {

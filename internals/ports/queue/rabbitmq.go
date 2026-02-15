@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Pr3c10us/absolutego/internals/ports/queue/generateaudio"
+	"github.com/Pr3c10us/absolutego/internals/ports/queue/generateaudios"
 	"sync"
 
 	"github.com/Pr3c10us/absolutego/internals/adapters"
@@ -43,6 +44,7 @@ func NewAMQConsumer(environmentVariables *configs.EnvironmentVariables, amqp *am
 	amqConsumer.Consume(generatescript.Handler, string(queue.QueueGenScript), 20)
 	amqConsumer.Consume(generatesplits.Handler, string(queue.QueueGenScriptSplit), 20)
 	amqConsumer.Consume(generateaudio.Handler, string(queue.QueueGenAudio), 20)
+	amqConsumer.Consume(generateaudios.Handler, string(queue.QueueGenAudios), 20)
 
 	return amqConsumer
 }
