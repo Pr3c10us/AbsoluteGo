@@ -29,6 +29,6 @@ type Split struct {
 	Effect          *utils.Effect `json:"effect"`
 	AudioURL        *string       `json:"audioURL"`
 	AudioDuration   *float64      `json:"audioDuration"`
-	VideoURL        *string       `json:"VideoURL"`
+	VideoURL        *string       `json:"videoURL"`
 	Panel           book.Panel    `json:"panel"`
 }
