@@ -9,7 +9,7 @@ import {
     type PointerEvent as ReactPointerEvent,
 } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     fetchEvents,
     type EventItem,
@@ -138,7 +138,7 @@ type Corner = "tl" | "tr" | "bl" | "br";
 const MARGIN = 20;
 const PILL_SIZE = 44;
 const DOCK_CLEARANCE = 20;
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 
 function getPillPosition(corner: Corner) {
     const vw = window.innerWidth;
@@ -187,6 +187,32 @@ function getEventHref(event: EventItem): string | null {
     }
 }
 
+// ── Query keys to invalidate per event ──────────────────────────────────────
+
+function getInvalidationKeys(event: EventItem): (string | number)[][] {
+    const bookId = event.BookId;
+    if (!bookId) return [];
+
+    switch (event.Operation) {
+        case "add_chapter":
+            return [
+                ["chapters", bookId],
+                ...(event.ChapterId ? [["pages", event.ChapterId]] : []),
+            ];
+        case "gen_script":
+            return [["scripts", bookId]];
+        case "gen_script_split":
+            return [...(event.ScriptId ? [["splits", event.ScriptId]] : [])];
+        case "gen_audio":
+        case "gen_video":
+            return [...(event.ScriptId ? [["splits", event.ScriptId]] : [])];
+        case "merge_video":
+            return [["books"]];
+        default:
+            return [];
+    }
+}
+
 // ── Filter options ──────────────────────────────────────────────────────────
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
@@ -212,12 +238,14 @@ const OPERATION_OPTIONS: { value: string; label: string }[] = [
 
 const EventTracker = memo(function EventTracker() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const [mounted, setMounted] = useState(false);
     const [corner, setCorner] = useState<Corner>("br");
     const [expanded, setExpanded] = useState(false);
     const [pinned, setPinned] = useState(false);
     const [dragging, setDragging] = useState(false);
     const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
+    const [, setResizeTick] = useState(0);
     const dragOffsetRef = useRef({ x: 0, y: 0 });
     const didDragRef = useRef(false);
     const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -342,7 +370,7 @@ const EventTracker = memo(function EventTracker() {
     );
 
     useEffect(() => {
-        const h = () => setCorner((c) => c);
+        const h = () => setResizeTick((t) => t + 1);
         window.addEventListener("resize", h);
         return () => window.removeEventListener("resize", h);
     }, []);
@@ -359,12 +387,17 @@ const EventTracker = memo(function EventTracker() {
         (event: EventItem) => {
             const href = getEventHref(event);
             if (href) {
+                // Invalidate relevant queries so the page shows fresh data
+                // even if the user is already on the target route
+                for (const key of getInvalidationKeys(event)) {
+                    queryClient.invalidateQueries({ queryKey: key });
+                }
                 router.push(href);
                 setPinned(false);
                 setExpanded(false);
             }
         },
-        [router]
+        [router, queryClient]
     );
 
     if (!mounted) return null;
@@ -458,7 +491,7 @@ const EventTracker = memo(function EventTracker() {
                     {events.length === 0 ? (
                         <div className="py-6 px-3 text-center text-[0.7rem] text-neutral-400">No events found</div>
                     ) : (
-                        <ScrollArea className="max-h-[260px]">
+                        <ScrollArea className="max-h-80 overflow-hidden">
                             <ul className="list-none m-0 py-1.5">
                                 {events.map((event) => {
                                     const href = getEventHref(event);

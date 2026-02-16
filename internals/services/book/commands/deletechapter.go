@@ -26,13 +26,13 @@ func (s *DeleteChapter) Handle(chapterId int64) error {
 		return appError.BadRequest(errors.New("chapter does not exist"))
 	}
 
-	scrips, err := s.scriptImplementation.GetScripts(script.Query{
+	scripts, err := s.scriptImplementation.GetScripts(script.Query{
 		Chapter: ch.Number,
 	})
 	if err != nil {
 		return err
 	}
-	for _, scr := range scrips {
+	for _, scr := range scripts {
 		err = s.deleteScript.Handle(scr.Id)
 		if err != nil {
 			return err
@@ -92,6 +92,6 @@ func NewDeleteChapter(bookImplementation book.Interface, storageImplementation s
 		bookImplementation:    bookImplementation,
 		storageImplementation: storageImplementation,
 		scriptImplementation:  scriptImplementation,
-		deleteScript:          scriptService.NewDeleteScript(scriptImplementation),
+		deleteScript:          scriptService.NewDeleteScript(scriptImplementation, storageImplementation),
 	}
 }

@@ -95,3 +95,4 @@ CREATE INDEX IF NOT EXISTS idx_panels_page_id ON panels (page_id);
 CREATE INDEX IF NOT EXISTS idx_scripts_book_id ON scripts (book_id);
 CREATE INDEX IF NOT EXISTS idx_splits_script_id ON splits (script_id);
 CREATE INDEX IF NOT EXISTS idx_splits_panel_id ON splits (panel_id);
+CREATE INDEX IF NOT EXISTS idx_vabs_script_id ON vabs (script_id);

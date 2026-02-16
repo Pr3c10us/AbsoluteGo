@@ -2,13 +2,16 @@ package commands
 
 import (
 	"errors"
+	"github.com/Pr3c10us/absolutego/internals/domains/storage"
 
 	"github.com/Pr3c10us/absolutego/internals/domains/script"
 	"github.com/Pr3c10us/absolutego/packages/appError"
 )
 
 type DeleteScript struct {
-	scriptImplementation script.Interface
+	scriptImplementation  script.Interface
+	storageImplementation storage.Interface
+	deleteSplits          *DeleteSplits
 }
 
 func (s *DeleteScript) Handle(scriptId int64) error {
@@ -20,7 +23,7 @@ func (s *DeleteScript) Handle(scriptId int64) error {
 		return appError.BadRequest(errors.New("script does not exist"))
 	}
 
-	err = s.scriptImplementation.DeleteSplits(scriptId)
+	err = s.deleteSplits.Handle(scriptId)
 	if err != nil {
 		return err
 	}
@@ -28,8 +31,10 @@ func (s *DeleteScript) Handle(scriptId int64) error {
 	return s.scriptImplementation.DeleteScript(scriptId)
 }
 
-func NewDeleteScript(scriptImplementation script.Interface) *DeleteScript {
+func NewDeleteScript(scriptImplementation script.Interface, storageImplementation storage.Interface) *DeleteScript {
 	return &DeleteScript{
-		scriptImplementation: scriptImplementation,
+		scriptImplementation:  scriptImplementation,
+		storageImplementation: storageImplementation,
+		deleteSplits:          NewDeleteSplits(scriptImplementation, storageImplementation),
 	}
 }
