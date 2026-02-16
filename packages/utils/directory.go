@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"github.com/Pr3c10us/absolutego/packages/configs"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -9,8 +10,6 @@ import (
 	"strconv"
 	"time"
 	"unicode"
-
-	"github.com/Pr3c10us/absolutego/packages/configs"
 )
 
 func GetDirectory(dirName string) (string, error) {

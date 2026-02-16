@@ -2,7 +2,6 @@ package commands
 
 import (
 	"errors"
-	"fmt"
 	"github.com/Pr3c10us/absolutego/internals/domains/ai"
 	"github.com/Pr3c10us/absolutego/internals/domains/book"
 	"github.com/Pr3c10us/absolutego/internals/domains/script"
@@ -50,7 +49,6 @@ func (service *GenerateAudios) Handle(parameters GenerateAudiosParameters) (int6
 
 	maxWorkers := 20
 	err = utils.RunWorkerPool(splits, maxWorkers, func(j script.Split) error {
-		fmt.Println(j)
 		_, _ = service.generateAudio.Handle(AudioParameter{
 			Id:         j.Id,
 			Voice:      parameters.Voice,

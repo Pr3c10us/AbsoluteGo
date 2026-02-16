@@ -79,6 +79,9 @@ func (server *GinServer) scriptRoutes() {
 		scriptRoute.POST("/audio", handler.GenerateAudios)
 		scriptRoute.POST("/audio/split", handler.GenerateAudio)
 
+		scriptRoute.POST("/video/:scriptId", handler.GenerateVideos)
+		scriptRoute.POST("/video/split/:splitId", handler.GenerateVideo)
+
 		scriptRoute.GET("/split/:scriptId", handler.GetSplits)
 		scriptRoute.POST("/split/:scriptId", handler.GenerateSplits)
 		scriptRoute.DELETE("/split/:scriptId", handler.DeleteSplits)

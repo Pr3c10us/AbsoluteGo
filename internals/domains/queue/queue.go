@@ -9,6 +9,7 @@ const (
 	QueueGenAudio       Queue = "gen_audio"
 	QueueGenAudios      Queue = "gen_audios"
 	QueueGenVideo       Queue = "gen_video"
+	QueueGenVideos      Queue = "gen_videos"
 	QueueMergeVideo     Queue = "merge_video"
 )
 

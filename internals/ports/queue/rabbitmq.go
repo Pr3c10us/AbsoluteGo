@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"github.com/Pr3c10us/absolutego/internals/ports/queue/generateaudio"
 	"github.com/Pr3c10us/absolutego/internals/ports/queue/generateaudios"
+	"github.com/Pr3c10us/absolutego/internals/ports/queue/generatevideo"
+	"github.com/Pr3c10us/absolutego/internals/ports/queue/generatevideos"
 	"sync"
 
 	"github.com/Pr3c10us/absolutego/internals/adapters"
@@ -45,6 +47,8 @@ func NewAMQConsumer(environmentVariables *configs.EnvironmentVariables, amqp *am
 	amqConsumer.Consume(generatesplits.Handler, string(queue.QueueGenScriptSplit), 20)
 	amqConsumer.Consume(generateaudio.Handler, string(queue.QueueGenAudio), 20)
 	amqConsumer.Consume(generateaudios.Handler, string(queue.QueueGenAudios), 20)
+	amqConsumer.Consume(generatevideo.Handler, string(queue.QueueGenVideo), 5)
+	amqConsumer.Consume(generatevideos.Handler, string(queue.QueueGenVideos), 5)
 
 	return amqConsumer
 }

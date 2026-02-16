@@ -9,6 +9,7 @@ import (
 	"github.com/Pr3c10us/absolutego/internals/domains/event"
 	"github.com/Pr3c10us/absolutego/internals/domains/queue"
 	"github.com/Pr3c10us/absolutego/internals/domains/script"
+	"github.com/Pr3c10us/absolutego/packages/appError"
 )
 
 type CreateAudio struct {
@@ -24,7 +25,7 @@ func (service *CreateAudio) Handle(id int64, voice ai.Voice, voiceStyle string) 
 		return err
 	}
 	if split == nil {
-		return errors.New("split does not exist")
+		return appError.BadRequest(errors.New("split does not exist"))
 	}
 
 	scr, err := service.scriptImplementation.GetScript(split.ScriptId)
@@ -32,7 +33,7 @@ func (service *CreateAudio) Handle(id int64, voice ai.Voice, voiceStyle string) 
 		return err
 	}
 	if scr == nil {
-		return errors.New("script does not exist")
+		return appError.BadRequest(errors.New("script does not exist"))
 	}
 
 	b, err := service.bookImplementation.GetBook(scr.BookId)
@@ -40,7 +41,7 @@ func (service *CreateAudio) Handle(id int64, voice ai.Voice, voiceStyle string) 
 		return err
 	}
 	if b == nil {
-		return errors.New("book does not exist")
+		return appError.BadRequest(errors.New("book does not exist"))
 	}
 
 	eventId, err := service.eventImplementation.Create(event.Event{

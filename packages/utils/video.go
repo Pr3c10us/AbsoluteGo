@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Pr3c10us/absolutego/packages/configs"
 	"github.com/disintegration/imaging"
 )
 
@@ -51,20 +52,12 @@ const (
 	TransitionCircleClose TransitionEffect = "circleclose"
 )
 
-type HWAccel string
-
-const (
-	HWAccelNone   HWAccel = "none"
-	HWAccelNvidia HWAccel = "nvidia"
-	HWAccelApple  HWAccel = "apple"
-)
-
 type CreateVideoOptions struct {
 	FPS                int
 	Width              int
 	Height             int
 	BackgroundImage    string
-	HWAccel            HWAccel
+	HWAccel            configs.HWAccel
 	TransitionDuration float64
 	TransitionEffect   TransitionEffect
 }
@@ -74,7 +67,7 @@ func defaultCreateVideoOptions() CreateVideoOptions {
 		FPS:                30,
 		Width:              1920,
 		Height:             1080,
-		HWAccel:            HWAccelNone,
+		HWAccel:            configs.HWAccelNone,
 		TransitionDuration: 0.5,
 		TransitionEffect:   TransitionFade,
 	}
@@ -97,7 +90,7 @@ func defaultMergeAudioOptions() MergeAudioOptions {
 type MergeVideosOptions struct {
 	TransitionDuration float64
 	TransitionEffect   TransitionEffect
-	HWAccel            HWAccel
+	HWAccel            configs.HWAccel
 	GapDuration        float64
 }
 
@@ -105,7 +98,7 @@ func defaultMergeVideosOptions() MergeVideosOptions {
 	return MergeVideosOptions{
 		TransitionDuration: 0.5,
 		TransitionEffect:   TransitionFade,
-		HWAccel:            HWAccelNone,
+		HWAccel:            configs.HWAccelNone,
 		GapDuration:        1,
 	}
 }
@@ -248,22 +241,22 @@ func cleanupTempDir(tempDir string) {
 }
 
 // encoderOptions returns ffmpeg encoder flags for the given HWAccel.
-func encoderOptions(accel HWAccel) []string {
+func encoderOptions(accel configs.HWAccel) []string {
 	switch accel {
-	case HWAccelNvidia:
+	case configs.HWAccelNvidia:
 		return []string{"-c:v", "h264_nvenc", "-preset", "p1", "-rc", "vbr", "-cq", "26"}
-	case HWAccelApple:
+	case configs.HWAccelApple:
 		return []string{"-c:v", "h264_videotoolbox", "-q:v", "65"}
 	default:
 		return []string{"-c:v", "libx264", "-preset", "ultrafast", "-tune", "fastdecode", "-crf", "26"}
 	}
 }
 
-func encoderOptionsMerge(accel HWAccel) []string {
+func encoderOptionsMerge(accel configs.HWAccel) []string {
 	switch accel {
-	case HWAccelNvidia:
+	case configs.HWAccelNvidia:
 		return []string{"-c:v", "h264_nvenc", "-preset", "p4", "-rc", "vbr", "-cq", "23"}
-	case HWAccelApple:
+	case configs.HWAccelApple:
 		return []string{"-c:v", "h264_videotoolbox", "-q:v", "65"}
 	default:
 		return []string{"-c:v", "libx264", "-preset", "fast", "-crf", "23"}
@@ -310,13 +303,11 @@ func CreateVideoFromImages(videoData []VideoData, outputPath string, opts *Creat
 		return fmt.Errorf("transition duration (%.2fs) must be less than shortest clip (%.2fs)", o.TransitionDuration, minDur)
 	}
 
-	fmt.Println("Pre-processing images...")
 	processed, tempDir, err := preprocessImages(videoData, o.Width, o.Height, color.NRGBA{R: 0xFF, G: 0x00, B: 0xFF, A: 0xFF})
 	if err != nil {
 		return err
 	}
 	defer cleanupTempDir(tempDir)
-	fmt.Printf("Processed %d images\n", len(processed))
 
 	return createVideo(videoData, processed, outputPath, o)
 }
@@ -406,14 +397,12 @@ func createVideo(videoData []VideoData, images []processedImage, outputPath stri
 	args = append(args, encoderOptions(o.HWAccel)...)
 	args = append(args, "-y", outputPath)
 
-	fmt.Println("Running FFmpeg...")
 	cmd := exec.Command("ffmpeg", args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("ffmpeg error: %w", err)
 	}
-	fmt.Println("Video created:", outputPath)
 	return nil
 }
 
@@ -465,7 +454,6 @@ func MergeAudioToVideo(videoPath, audioPath, outputPath string, opts *MergeAudio
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("ffmpeg error: %w", err)
 	}
-	fmt.Println("Audio merged successfully:", outputPath)
 	return nil
 }
 
@@ -626,14 +614,12 @@ func MergeVideos(videoPaths []string, outputPath string, opts *MergeVideosOption
 	}
 	args = append(args, "-y", outputPath)
 
-	fmt.Println("Running FFmpeg merge...")
 	cmd := exec.Command("ffmpeg", args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("ffmpeg merge error: %w", err)
 	}
-	fmt.Println("Videos merged successfully:", outputPath)
 	return nil
 }
 
@@ -738,6 +724,5 @@ func AddBackgroundMusic(videoPath string, audioPaths []string, outputPath string
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("ffmpeg error: %w", err)
 	}
-	fmt.Println("Background music added successfully:", outputPath)
 	return nil
 }

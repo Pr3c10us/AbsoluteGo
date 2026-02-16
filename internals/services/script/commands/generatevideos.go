@@ -2,8 +2,6 @@ package commands
 
 import (
 	"errors"
-	"fmt"
-	"github.com/Pr3c10us/absolutego/internals/domains/ai"
 	"github.com/Pr3c10us/absolutego/internals/domains/book"
 	"github.com/Pr3c10us/absolutego/internals/domains/script"
 	"github.com/Pr3c10us/absolutego/internals/domains/storage"
@@ -11,20 +9,14 @@ import (
 	"github.com/Pr3c10us/absolutego/packages/utils"
 )
 
-type GenerateAudios struct {
+type GenerateVideos struct {
 	bookImplementation   book.Interface
 	scriptImplementation script.Interface
-	generateAudio        *GenerateAudio
+	generateVideo        *GenerateVideo
 }
 
-type GenerateAudiosParameters struct {
-	ScriptId   int64
-	Voice      ai.Voice
-	VoiceStyle string
-}
-
-func (service *GenerateAudios) Handle(parameters GenerateAudiosParameters) (int64, error) {
-	scr, err := service.scriptImplementation.GetScript(parameters.ScriptId)
+func (service *GenerateVideos) Handle(scriptId int64) (int64, error) {
+	scr, err := service.scriptImplementation.GetScript(scriptId)
 	if err != nil {
 		return 0, err
 	}
@@ -48,22 +40,17 @@ func (service *GenerateAudios) Handle(parameters GenerateAudiosParameters) (int6
 		return 0, errors.New("no splits for script")
 	}
 
-	maxWorkers := 20
+	maxWorkers := 5
 	err = utils.RunWorkerPool(splits, maxWorkers, func(j script.Split) error {
-		fmt.Println(j)
-		_, _ = service.generateAudio.Handle(AudioParameter{
-			Id:         j.Id,
-			Voice:      parameters.Voice,
-			VoiceStyle: parameters.VoiceStyle,
-		})
+		_, _ = service.generateVideo.Handle(j.Id)
 		return nil
 	})
 
 	return scr.Id, nil
 }
 
-func NewGenerateAudios(bookImplementation book.Interface, scriptImplementation script.Interface, aiImplementation ai.Interface, storageImplementation storage.Interface, environmentVariables *configs.EnvironmentVariables) *GenerateAudios {
-	return &GenerateAudios{
-		bookImplementation, scriptImplementation, NewGenerateAudio(scriptImplementation, aiImplementation, storageImplementation, environmentVariables),
+func NewGenerateVideos(bookImplementation book.Interface, scriptImplementation script.Interface, storageImplementation storage.Interface, environmentVariables *configs.EnvironmentVariables) *GenerateVideos {
+	return &GenerateVideos{
+		bookImplementation, scriptImplementation, NewGenerateVideo(bookImplementation, storageImplementation, environmentVariables, scriptImplementation),
 	}
 }

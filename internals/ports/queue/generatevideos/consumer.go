@@ -1,4 +1,4 @@
-package generatevideo
+package generatevideos
 
 import (
 	"encoding/binary"
@@ -6,8 +6,8 @@ import (
 )
 
 func Handler(c *queueport.Context) (*queueport.HandlerResult, error) {
-	splitId := int64(binary.BigEndian.Uint64(c.Data))
-	scriptId, err := c.Services.ScriptServices.GenerateVideo.Handle(splitId)
+	scriptId := int64(binary.BigEndian.Uint64(c.Data))
+	scriptId, err := c.Services.ScriptServices.GenerateVideos.Handle(scriptId)
 	return &queueport.HandlerResult{
 		ScriptId: scriptId,
 	}, err

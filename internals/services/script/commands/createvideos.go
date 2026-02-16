@@ -8,33 +8,23 @@ import (
 	"github.com/Pr3c10us/absolutego/internals/domains/event"
 	"github.com/Pr3c10us/absolutego/internals/domains/queue"
 	"github.com/Pr3c10us/absolutego/internals/domains/script"
+	"github.com/Pr3c10us/absolutego/packages/appError"
 )
 
-type CreateVideo struct {
+type CreateVideos struct {
 	eventImplementation  event.Interface
 	bookImplementation   book.Interface
 	queueImplementation  queue.Interface
 	scriptImplementation script.Interface
 }
 
-func (service *CreateVideo) Handle(id int64) error {
-	split, err := service.scriptImplementation.GetSplit(id)
-	if err != nil {
-		return err
-	}
-	if split == nil {
-		return errors.New("split does not exist")
-	}
-	if split.AudioURL == nil || split.AudioDuration == nil {
-		return errors.New("generate split audio first")
-	}
-
-	scr, err := service.scriptImplementation.GetScript(split.ScriptId)
+func (service *CreateVideos) Handle(scriptId int64) error {
+	scr, err := service.scriptImplementation.GetScript(scriptId)
 	if err != nil {
 		return err
 	}
 	if scr == nil {
-		return errors.New("script does not exist")
+		return appError.BadRequest(errors.New("script does not exist"))
 	}
 
 	b, err := service.bookImplementation.GetBook(scr.BookId)
@@ -42,13 +32,21 @@ func (service *CreateVideo) Handle(id int64) error {
 		return err
 	}
 	if b == nil {
-		return errors.New("book does not exist")
+		return appError.BadRequest(errors.New("book does not exist"))
+	}
+
+	splits, err := service.scriptImplementation.GetSplits(scr.Id)
+	if err != nil {
+		return err
+	}
+	if len(splits) < 1 {
+		return appError.BadRequest(errors.New("no splits for script"))
 	}
 
 	eventId, err := service.eventImplementation.Create(event.Event{
 		Status:      event.StatusEnqueue,
 		Operation:   event.OpGenVideo,
-		Description: fmt.Sprintf("Video generation for %s, script %q, split %d", b.Title, scr.Name, split.Id),
+		Description: fmt.Sprintf("Video generation for script %q in %q with %d split(s)", scr.Name, b.Title, len(splits)),
 		BookId:      b.Id,
 	})
 	if err != nil {
@@ -56,7 +54,7 @@ func (service *CreateVideo) Handle(id int64) error {
 	}
 
 	dataByte := make([]byte, 8)
-	binary.BigEndian.PutUint64(dataByte, uint64(split.Id))
+	binary.BigEndian.PutUint64(dataByte, uint64(scr.Id))
 
 	qMsg := queue.Message{
 		EventId: eventId,
@@ -64,7 +62,7 @@ func (service *CreateVideo) Handle(id int64) error {
 	}
 
 	err = service.queueImplementation.Publish(&queue.MessageParams{
-		Queue:   queue.QueueGenVideo,
+		Queue:   queue.QueueGenVideos,
 		Message: qMsg,
 	})
 	if err != nil {
@@ -74,8 +72,8 @@ func (service *CreateVideo) Handle(id int64) error {
 	return nil
 }
 
-func NewCreateVideo(eventImplementation event.Interface, bookImplementation book.Interface, queueImplementation queue.Interface, scriptImplementation script.Interface) *CreateVideo {
-	return &CreateVideo{
+func NewCreateVideos(eventImplementation event.Interface, bookImplementation book.Interface, queueImplementation queue.Interface, scriptImplementation script.Interface) *CreateVideos {
+	return &CreateVideos{
 		eventImplementation, bookImplementation, queueImplementation, scriptImplementation,
 	}
 }

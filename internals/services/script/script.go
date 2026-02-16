@@ -28,6 +28,10 @@ type Commands struct {
 	GenerateAudios *commands.GenerateAudios
 	CreateAudio    *commands.CreateAudio
 	CreateAudios   *commands.CreateAudios
+	GenerateVideo  *commands.GenerateVideo
+	GenerateVideos *commands.GenerateVideos
+	CreateVideo    *commands.CreateVideo
+	CreateVideos   *commands.CreateVideos
 }
 
 type Queries struct {
@@ -48,6 +52,10 @@ func NewScriptServices(script script.Interface, book book.Interface, ai ai.Inter
 			GenerateAudios: commands.NewGenerateAudios(book, script, ai, storageImplementation, environmentVariables),
 			CreateAudio:    commands.NewCreateAudio(eventImplementation, book, queueImplementation, script),
 			CreateAudios:   commands.NewCreateAudios(eventImplementation, book, queueImplementation, script),
+			GenerateVideo:  commands.NewGenerateVideo(book, storageImplementation, environmentVariables, script),
+			GenerateVideos: commands.NewGenerateVideos(book, script, storageImplementation, environmentVariables),
+			CreateVideo:    commands.NewCreateVideo(eventImplementation, book, queueImplementation, script),
+			CreateVideos:   commands.NewCreateVideos(eventImplementation, book, queueImplementation, script),
 		},
 		Queries: Queries{
 			GetScripts: queries.NewGetScripts(script),

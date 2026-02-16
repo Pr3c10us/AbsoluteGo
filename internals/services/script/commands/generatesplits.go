@@ -8,6 +8,7 @@ import (
 	"github.com/Pr3c10us/absolutego/internals/domains/script"
 	"github.com/Pr3c10us/absolutego/packages/appError"
 	"github.com/Pr3c10us/absolutego/packages/prompts"
+	"github.com/Pr3c10us/absolutego/packages/utils"
 )
 
 type GenerateSplits struct {
@@ -121,7 +122,7 @@ func (s *GenerateSplits) Handle(scriptId int64) error {
 			ScriptId:        scr.Id,
 			Content:         &group.content,
 			PreviousContent: prev,
-			Effect:          &group.effect,
+			Effect:          (*utils.Effect)(&group.effect),
 			PanelId:         group.panelId,
 		}
 		splits = append(splits, split)
@@ -132,7 +133,7 @@ func (s *GenerateSplits) Handle(scriptId int64) error {
 			previousContent = previousContent + "\n" + group.content
 		}
 	}
-	
+
 	err = s.script.DeleteSplits(scriptId)
 	if err != nil {
 		return err

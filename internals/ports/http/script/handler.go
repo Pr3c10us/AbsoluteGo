@@ -122,7 +122,7 @@ func (h *Handler) GenerateSplits(c *gin.Context) {
 
 func (h *Handler) GenerateAudios(c *gin.Context) {
 	var body struct {
-		ScriptId   int64  `uri:"scriptId" binding:"required,gt=0"`
+		ScriptId   int64  `json:"scriptId" binding:"required,gt=0"`
 		Voice      string `json:"voice" binding:"required,oneof=Zephyr Puck Charon Kore Fenrir Leda Orus Aoede Callirrhoe Autonoe Enceladus Iapetus Umbriel Algieba Despina Erinome Algenib Rasalgethi Laomedeia Achernar Alnilam Schedar Gacrux Pulcherrima Achird Zubenelgenubi Vindemiatrix Sadachbia Sadaltager Sulafat"`
 		VoiceStyle string `json:"voiceStyle" binding:"omitempty"`
 	}
@@ -141,7 +141,7 @@ func (h *Handler) GenerateAudios(c *gin.Context) {
 
 func (h *Handler) GenerateAudio(c *gin.Context) {
 	var body struct {
-		SplitId    int64  `uri:"splitId" binding:"required,gt=0"`
+		SplitId    int64  `json:"splitId" binding:"required,gt=0"`
 		Voice      string `json:"voice" binding:"required,oneof=Zephyr Puck Charon Kore Fenrir Leda Orus Aoede Callirrhoe Autonoe Enceladus Iapetus Umbriel Algieba Despina Erinome Algenib Rasalgethi Laomedeia Achernar Alnilam Schedar Gacrux Pulcherrima Achird Zubenelgenubi Vindemiatrix Sadachbia Sadaltager Sulafat"`
 		VoiceStyle string `json:"voiceStyle" binding:"omitempty"`
 	}
@@ -173,4 +173,38 @@ func (h *Handler) DeleteSplits(c *gin.Context) {
 	}
 
 	response.NewSuccessResponse("splits deleted", nil, nil).Send(c)
+}
+
+func (h *Handler) GenerateVideos(c *gin.Context) {
+	var body struct {
+		ScriptId int64 `uri:"scriptId" binding:"required,gt=0"`
+	}
+	if err := c.ShouldBindUri(&body); err != nil {
+		_ = c.Error(validator.ValidateRequest(err))
+		return
+	}
+
+	if err := h.service.CreateVideos.Handle(body.ScriptId); err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	response.NewSuccessResponse("", gin.H{"message": "added to queue"}, nil).Send(c)
+}
+
+func (h *Handler) GenerateVideo(c *gin.Context) {
+	var body struct {
+		SplitId int64 `uri:"splitId" binding:"required,gt=0"`
+	}
+	if err := c.ShouldBindUri(&body); err != nil {
+		_ = c.Error(validator.ValidateRequest(err))
+		return
+	}
+
+	if err := h.service.CreateVideo.Handle(body.SplitId); err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	response.NewSuccessResponse("", gin.H{"message": "added to queue"}, nil).Send(c)
 }

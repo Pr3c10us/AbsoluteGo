@@ -27,6 +27,9 @@ func (service *GenerateVideo) Handle(id int64) (int64, error) {
 	if split == nil {
 		return 0, errors.New("split does not exist")
 	}
+	if split.AudioURL == nil || split.AudioDuration == nil {
+		return 0, errors.New("generate split audio first")
+	}
 
 	scr, err := service.scriptImplementation.GetScript(split.ScriptId)
 	if err != nil {
@@ -94,6 +97,24 @@ func (service *GenerateVideo) Handle(id int64) (int64, error) {
 		AudioFade: true,
 		Loop:      true,
 		Volume:    1,
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	osFile, err := os.Open(videoPath)
+	if err != nil {
+		return 0, err
+	}
+	defer osFile.Close()
+
+	url, err := service.storageImplementation.UploadFile(service.environmentVariable.Buckets.VideoBucket, osFile)
+	if err != nil {
+		return 0, err
+	}
+
+	err = service.scriptImplementation.UpdateSplit(split.Id, &script.Split{
+		VideoURL: &url,
 	})
 	if err != nil {
 		return 0, err
