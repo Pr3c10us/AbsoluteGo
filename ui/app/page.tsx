@@ -4,6 +4,7 @@ import { memo, useState, useCallback } from "react";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Trash2, BookOpen } from "lucide-react";
 import {
   fetchBooks,
   addBook,
@@ -25,36 +26,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// ── Static SVG icons (hoisted — rendering-hoist-jsx) ────────────────────────
+// ── Static icons (hoisted — rendering-hoist-jsx) ────────────────────────────
 
-const TrashIcon = (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-  </svg>
-);
+const TrashIcon = <Trash2 className="h-4 w-4" />;
 
-const BookIcon = (
-  <svg
-    className="mx-auto mb-3 h-10 w-10 text-neutral-300"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
-  </svg>
-);
+const BookIcon = <BookOpen className="mx-auto mb-3 h-10 w-10 text-neutral-300" />;
 
 const HeroUnderline = (
   <svg className="mt-2 h-2 w-24 text-foreground" viewBox="0 0 120 8" fill="none">

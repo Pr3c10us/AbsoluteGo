@@ -11,6 +11,14 @@ import {
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+    Loader2,
+    Check,
+    XCircle,
+    Clock,
+    RefreshCw,
+    GitBranch,
+} from "lucide-react";
+import {
     fetchEvents,
     type EventItem,
     type EventStatus,
@@ -27,93 +35,82 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
-// ── Static SVG icons (hoisted) ──────────────────────────────────────────────
+// ── Static icons (hoisted) ──────────────────────────────────────────────────
 
-const SpinnerIcon = (
-    <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-    </svg>
-);
+const SpinnerIcon = <Loader2 className="h-4 w-4 animate-spin" />;
 
-const CheckIcon = (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20 6 9 17l-5-5" />
-    </svg>
-);
+const CheckIcon = <Check className="h-4 w-4" strokeWidth={2.5} />;
 
-const ErrorIcon = (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <path d="m15 9-6 6" />
-        <path d="m9 9 6 6" />
-    </svg>
-);
+const ErrorIcon = <XCircle className="h-4 w-4" strokeWidth={2.5} />;
 
-const QueueIcon = (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <polyline points="12 6 12 12 16 14" />
-    </svg>
-);
+const QueueIcon = <Clock className="h-4 w-4" />;
 
-const RetryIcon = (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-        <path d="M3 3v5h5" />
-        <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-        <path d="M16 16h5v5" />
-    </svg>
-);
+const RetryIcon = <RefreshCw className="h-4 w-4" />;
 
-const EventsIcon = (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M16 3h5v5" />
-        <path d="M8 3H3v5" />
-        <path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3" />
-        <path d="m15 9 6-6" />
-    </svg>
-);
+const EventsIcon = <GitBranch className="h-4 w-4" />;
 
 // ── Status helpers ──────────────────────────────────────────────────────────
 
 function getStatusIcon(status: EventStatus) {
     switch (status) {
-        case "enqueue": return QueueIcon;
-        case "processing": return SpinnerIcon;
-        case "failed": return ErrorIcon;
-        case "successful": return CheckIcon;
-        case "retry": return RetryIcon;
+        case "enqueue":
+            return QueueIcon;
+        case "processing":
+            return SpinnerIcon;
+        case "failed":
+            return ErrorIcon;
+        case "successful":
+            return CheckIcon;
+        case "retry":
+            return RetryIcon;
     }
 }
 
 function getStatusLabel(status: EventStatus): string {
     switch (status) {
-        case "enqueue": return "Queued";
-        case "processing": return "Processing";
-        case "failed": return "Failed";
-        case "successful": return "Done";
-        case "retry": return "Retrying";
+        case "enqueue":
+            return "Queued";
+        case "processing":
+            return "Processing";
+        case "failed":
+            return "Failed";
+        case "successful":
+            return "Done";
+        case "retry":
+            return "Retrying";
     }
 }
 
-function getStatusBadgeVariant(status: EventStatus): "default" | "secondary" | "destructive" | "outline" {
+function getStatusBadgeVariant(
+    status: EventStatus,
+): "default" | "secondary" | "destructive" | "outline" {
     switch (status) {
-        case "successful": return "default";
-        case "failed": return "destructive";
+        case "successful":
+            return "default";
+        case "failed":
+            return "destructive";
         case "processing":
-        case "retry": return "secondary";
-        case "enqueue": return "outline";
+        case "retry":
+            return "secondary";
+        case "enqueue":
+            return "outline";
     }
 }
 
 function getOperationLabel(op: EventOperation): string {
     switch (op) {
-        case "add_chapter": return "Add Chapter";
-        case "gen_script": return "Generate Script";
-        case "gen_script_split": return "Generate Splits";
-        case "gen_audio": return "Generate Audio";
-        case "gen_video": return "Generate Video";
-        case "merge_video": return "Merge Video";
+        case "add_chapter":
+            return "Add Chapter";
+        case "gen_script":
+            return "Generate Script";
+        case "gen_script_split":
+            return "Generate Splits";
+        case "gen_audio":
+            return "Generate Audio";
+        case "gen_video":
+            return "Generate Video";
+        case "merge_video":
+            return "Merge Video";
     }
 }
 
@@ -144,10 +141,17 @@ function getPillPosition(corner: Corner) {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     switch (corner) {
-        case "tl": return { x: MARGIN, y: MARGIN };
-        case "tr": return { x: vw - PILL_SIZE - MARGIN, y: MARGIN };
-        case "bl": return { x: MARGIN, y: vh - PILL_SIZE - DOCK_CLEARANCE };
-        case "br": return { x: vw - PILL_SIZE - MARGIN, y: vh - PILL_SIZE - DOCK_CLEARANCE };
+        case "tl":
+            return { x: MARGIN, y: MARGIN };
+        case "tr":
+            return { x: vw - PILL_SIZE - MARGIN, y: MARGIN };
+        case "bl":
+            return { x: MARGIN, y: vh - PILL_SIZE - DOCK_CLEARANCE };
+        case "br":
+            return {
+                x: vw - PILL_SIZE - MARGIN,
+                y: vh - PILL_SIZE - DOCK_CLEARANCE,
+            };
     }
 }
 
@@ -155,8 +159,12 @@ function findClosestCorner(cx: number, cy: number): Corner {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     return cx < vw / 2
-        ? cy < vh / 2 ? "tl" : "bl"
-        : cy < vh / 2 ? "tr" : "br";
+        ? cy < vh / 2
+            ? "tl"
+            : "bl"
+        : cy < vh / 2
+          ? "tr"
+          : "br";
 }
 
 // ── Event click → navigation ────────────────────────────────────────────────
@@ -244,7 +252,9 @@ const EventTracker = memo(function EventTracker() {
     const [expanded, setExpanded] = useState(false);
     const [pinned, setPinned] = useState(false);
     const [dragging, setDragging] = useState(false);
-    const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
+    const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(
+        null,
+    );
     const [, setResizeTick] = useState(0);
     const dragOffsetRef = useRef({ x: 0, y: 0 });
     const didDragRef = useRef(false);
@@ -266,8 +276,12 @@ const EventTracker = memo(function EventTracker() {
             fetchEvents({
                 limit: PAGE_SIZE,
                 page,
-                ...(filterStatus !== "all" ? { status: filterStatus as EventStatus } : {}),
-                ...(filterOperation !== "all" ? { operation: filterOperation as EventOperation } : {}),
+                ...(filterStatus !== "all"
+                    ? { status: filterStatus as EventStatus }
+                    : {}),
+                ...(filterOperation !== "all"
+                    ? { operation: filterOperation as EventOperation }
+                    : {}),
             }),
         refetchInterval: 5000,
     });
@@ -284,7 +298,10 @@ const EventTracker = memo(function EventTracker() {
 
     const allEvents: EventItem[] = allData?.data?.events ?? [];
     const activeCount = allEvents.filter(
-        (e) => e.Status === "processing" || e.Status === "enqueue" || e.Status === "retry"
+        (e) =>
+            e.Status === "processing" ||
+            e.Status === "enqueue" ||
+            e.Status === "retry",
     ).length;
 
     // ── Hover show/hide with delay ──
@@ -319,13 +336,17 @@ const EventTracker = memo(function EventTracker() {
                 target.closest?.("[data-radix-select-content]") ||
                 target.closest?.("[data-radix-popper-content-wrapper]") ||
                 target.closest?.("[role='listbox']")
-            ) return;
+            )
+                return;
             if (panelRef.current && !panelRef.current.contains(target)) {
                 setPinned(false);
                 setExpanded(false);
             }
         };
-        const id = setTimeout(() => document.addEventListener("mousedown", handleClick), 0);
+        const id = setTimeout(
+            () => document.addEventListener("mousedown", handleClick),
+            0,
+        );
         return () => {
             clearTimeout(id);
             document.removeEventListener("mousedown", handleClick);
@@ -337,12 +358,15 @@ const EventTracker = memo(function EventTracker() {
         (e: ReactPointerEvent<HTMLButtonElement>) => {
             didDragRef.current = false;
             const rect = e.currentTarget.getBoundingClientRect();
-            dragOffsetRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+            dragOffsetRef.current = {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top,
+            };
             setDragging(true);
             setDragPos({ x: rect.left, y: rect.top });
             e.currentTarget.setPointerCapture(e.pointerId);
         },
-        []
+        [],
     );
 
     const onPointerMove = useCallback(
@@ -354,7 +378,7 @@ const EventTracker = memo(function EventTracker() {
                 y: e.clientY - dragOffsetRef.current.y,
             });
         },
-        [dragging]
+        [dragging],
     );
 
     const onPointerUp = useCallback(
@@ -366,7 +390,7 @@ const EventTracker = memo(function EventTracker() {
             setCorner(findClosestCorner(cx, cy));
             setDragPos(null);
         },
-        [dragging]
+        [dragging],
     );
 
     useEffect(() => {
@@ -375,12 +399,22 @@ const EventTracker = memo(function EventTracker() {
         return () => window.removeEventListener("resize", h);
     }, []);
 
-    useEffect(() => () => { if (hideTimerRef.current) clearTimeout(hideTimerRef.current); }, []);
+    useEffect(
+        () => () => {
+            if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+        },
+        [],
+    );
 
     const handlePillClick = useCallback(() => {
         if (didDragRef.current) return;
-        if (pinned) { setPinned(false); setExpanded(false); }
-        else { setPinned(true); setExpanded(true); }
+        if (pinned) {
+            setPinned(false);
+            setExpanded(false);
+        } else {
+            setPinned(true);
+            setExpanded(true);
+        }
     }, [pinned]);
 
     const handleEventClick = useCallback(
@@ -397,7 +431,7 @@ const EventTracker = memo(function EventTracker() {
                 setExpanded(false);
             }
         },
-        [router, queryClient]
+        [router, queryClient],
     );
 
     if (!mounted) return null;
@@ -411,7 +445,7 @@ const EventTracker = memo(function EventTracker() {
         left: isRightCorner ? position.x + PILL_SIZE - 340 : position.x,
         ...(isTopCorner
             ? { top: position.y + PILL_SIZE + 8 }
-            : { top: position.y - 8, transform: "translateY(-100%)" }),
+            : { bottom: window.innerHeight - position.y + 8 }),
     };
 
     return (
@@ -427,8 +461,12 @@ const EventTracker = memo(function EventTracker() {
                         : "left 0.35s cubic-bezier(0.4,0,0.2,1), top 0.35s cubic-bezier(0.4,0,0.2,1)",
                 }}
                 onClick={handlePillClick}
-                onMouseEnter={() => { if (!pinned) showPanel(); }}
-                onMouseLeave={() => { if (!pinned) scheduleHide(); }}
+                onMouseEnter={() => {
+                    if (!pinned) showPanel();
+                }}
+                onMouseLeave={() => {
+                    if (!pinned) scheduleHide();
+                }}
                 onPointerDown={onPointerDown}
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}
@@ -436,7 +474,9 @@ const EventTracker = memo(function EventTracker() {
             >
                 {activeCount > 0 ? SpinnerIcon : EventsIcon}
                 {activeCount > 0 ? (
-                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-white text-black text-[0.6rem] font-extrabold flex items-center justify-center leading-none pointer-events-none">{activeCount}</span>
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-white text-black text-[0.6rem] font-extrabold flex items-center justify-center leading-none pointer-events-none">
+                        {activeCount}
+                    </span>
                 ) : null}
             </button>
 
@@ -446,8 +486,12 @@ const EventTracker = memo(function EventTracker() {
                     ref={panelRef}
                     className="fixed z-40 pointer-events-auto w-[340px] rounded-xl border border-black/[0.08] bg-white shadow-[0_8px_32px_rgba(0,0,0,0.12)] font-sans animate-in fade-in-0 zoom-in-[0.96] duration-150 overflow-hidden"
                     style={panelStyle}
-                    onMouseEnter={() => { if (!pinned) showPanel(); }}
-                    onMouseLeave={() => { if (!pinned) scheduleHide(); }}
+                    onMouseEnter={() => {
+                        if (!pinned) showPanel();
+                    }}
+                    onMouseLeave={() => {
+                        if (!pinned) scheduleHide();
+                    }}
                 >
                     {/* Header */}
                     <div className="flex items-center px-3 py-2.5 border-b border-black/[0.06]">
@@ -460,26 +504,44 @@ const EventTracker = memo(function EventTracker() {
 
                     {/* Filters */}
                     <div className="flex gap-1.5 px-3 py-2 border-b border-black/[0.06]">
-                        <Select value={filterStatus} onValueChange={setFilterStatus}>
-                            <SelectTrigger size="sm" className="h-7 text-xs flex-1">
+                        <Select
+                            value={filterStatus}
+                            onValueChange={setFilterStatus}
+                        >
+                            <SelectTrigger
+                                size="sm"
+                                className="h-7 text-xs flex-1"
+                            >
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                                 {STATUS_OPTIONS.map((opt) => (
-                                    <SelectItem key={opt.value} value={opt.value}>
+                                    <SelectItem
+                                        key={opt.value}
+                                        value={opt.value}
+                                    >
                                         {opt.label}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
 
-                        <Select value={filterOperation} onValueChange={setFilterOperation}>
-                            <SelectTrigger size="sm" className="h-7 text-xs flex-1">
+                        <Select
+                            value={filterOperation}
+                            onValueChange={setFilterOperation}
+                        >
+                            <SelectTrigger
+                                size="sm"
+                                className="h-7 text-xs flex-1"
+                            >
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                                 {OPERATION_OPTIONS.map((opt) => (
-                                    <SelectItem key={opt.value} value={opt.value}>
+                                    <SelectItem
+                                        key={opt.value}
+                                        value={opt.value}
+                                    >
                                         {opt.label}
                                     </SelectItem>
                                 ))}
@@ -489,7 +551,9 @@ const EventTracker = memo(function EventTracker() {
 
                     {/* Event list */}
                     {events.length === 0 ? (
-                        <div className="py-6 px-3 text-center text-[0.7rem] text-neutral-400">No events found</div>
+                        <div className="py-6 px-3 text-center text-[0.7rem] text-neutral-400">
+                            No events found
+                        </div>
                     ) : (
                         <ScrollArea className="max-h-80 overflow-hidden">
                             <ul className="list-none m-0 py-1.5">
@@ -497,30 +561,45 @@ const EventTracker = memo(function EventTracker() {
                                     const href = getEventHref(event);
                                     const clickable = href !== null;
                                     return (
-                                        <li
-                                            key={event.Id}
-                                            className={`flex items-center gap-2 px-3 py-2 rounded transition-colors duration-150 ${clickable ? "cursor-pointer hover:bg-black/[0.03]" : "cursor-default opacity-60"}`}
-                                            onClick={() => {
-                                                if (clickable) handleEventClick(event);
-                                            }}
-                                        >
-                                            <span className="flex shrink-0 text-black">
-                                                {getStatusIcon(event.Status)}
-                                            </span>
-                                            <div className="flex flex-col flex-1 min-w-0">
-                                                <span className="text-xs font-semibold text-black truncate">
-                                                    {getOperationLabel(event.Operation)}
+                                        <li key={event.Id}>
+                                            <button
+                                                className={`w-full flex items-center gap-2 px-3 py-2 rounded transition-colors duration-150 text-left ${clickable ? "cursor-pointer hover:bg-black/3" : "cursor-default opacity-60"}`}
+                                                disabled={!clickable}
+                                                onClick={() => {
+                                                    if (clickable)
+                                                        handleEventClick(event);
+                                                }}
+                                            >
+                                                <span className="flex shrink-0 text-black">
+                                                    {getStatusIcon(
+                                                        event.Status,
+                                                    )}
                                                 </span>
-                                                <span className="text-[0.6rem] text-neutral-500 truncate max-w-[200px]">
-                                                    {event.Description}
-                                                </span>
-                                                <span className="text-[0.55rem] text-neutral-400 mt-px">
-                                                    {timeAgo(event.UpdatedAt)}
-                                                </span>
-                                            </div>
-                                            <Badge variant={getStatusBadgeVariant(event.Status)}>
-                                                {getStatusLabel(event.Status)}
-                                            </Badge>
+                                                <div className="flex flex-col flex-1 min-w-0">
+                                                    <span className="text-xs font-semibold text-black truncate">
+                                                        {getOperationLabel(
+                                                            event.Operation,
+                                                        )}
+                                                    </span>
+                                                    <span className="text-[0.6rem] text-neutral-500 truncate max-w-[200px]">
+                                                        {event.Description}
+                                                    </span>
+                                                    <span className="text-[0.55rem] text-neutral-400 mt-px">
+                                                        {timeAgo(
+                                                            event.UpdatedAt,
+                                                        )}
+                                                    </span>
+                                                </div>
+                                                <Badge
+                                                    variant={getStatusBadgeVariant(
+                                                        event.Status,
+                                                    )}
+                                                >
+                                                    {getStatusLabel(
+                                                        event.Status,
+                                                    )}
+                                                </Badge>
+                                            </button>
                                         </li>
                                     );
                                 })}
@@ -536,11 +615,15 @@ const EventTracker = memo(function EventTracker() {
                                 size="sm"
                                 className="h-7 text-xs px-2"
                                 disabled={page <= 1}
-                                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                onClick={() =>
+                                    setPage((p) => Math.max(1, p - 1))
+                                }
                             >
                                 ← Prev
                             </Button>
-                            <span className="text-[0.6rem] text-neutral-500 font-medium">Page {page}</span>
+                            <span className="text-[0.6rem] text-neutral-500 font-medium">
+                                Page {page}
+                            </span>
                             <Button
                                 variant="ghost"
                                 size="sm"

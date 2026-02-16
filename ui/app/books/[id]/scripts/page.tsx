@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ArrowLeft, Trash2, FileText, Eye, GitBranch, Plus, Check, X } from "lucide-react";
 import {
     fetchBooks,
     fetchChapters,
@@ -38,106 +39,19 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// ── Static SVG icons (hoisted — rendering-hoist-jsx) ────────────────────────
+// ── Static icons (hoisted — rendering-hoist-jsx) ────────────────────────────
 
-const ArrowLeftIcon = (
-    <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="m12 19-7-7 7-7" />
-        <path d="M19 12H5" />
-    </svg>
-);
+const ArrowLeftIcon = <ArrowLeft className="h-4 w-4" />;
 
-const TrashIcon = (
-    <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    </svg>
-);
+const TrashIcon = <Trash2 className="h-3.5 w-3.5" />;
 
-const ScriptEmptyIcon = (
-    <svg
-        className="mx-auto mb-3 h-10 w-10 text-neutral-300"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-        <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-        <path d="M10 13H8" />
-        <path d="M16 17H8" />
-        <path d="M16 13h-2" />
-    </svg>
-);
+const ScriptEmptyIcon = <FileText className="mx-auto mb-3 h-10 w-10 text-neutral-300" strokeWidth={1.5} />;
 
-const EyeIcon = (
-    <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
-        <circle cx="12" cy="12" r="3" />
-    </svg>
-);
+const EyeIcon = <Eye className="h-3.5 w-3.5" />;
 
-const SplitIcon = (
-    <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M16 3h5v5" />
-        <path d="M8 3H3v5" />
-        <path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3" />
-        <path d="m15 9 6-6" />
-    </svg>
-);
+const SplitIcon = <GitBranch className="h-3.5 w-3.5" />;
 
-const PlusIcon = (
-    <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M5 12h14" />
-        <path d="M12 5v14" />
-    </svg>
-);
+const PlusIcon = <Plus className="h-4 w-4" />;
 
 const HeroUnderline = (
     <svg
@@ -154,20 +68,7 @@ const HeroUnderline = (
     </svg>
 );
 
-const CheckIcon = (
-    <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M20 6 9 17l-5-5" />
-    </svg>
-);
+const CheckIcon = <Check className="h-3.5 w-3.5" strokeWidth={2.5} />;
 
 // ── Script content viewer overlay ───────────────────────────────────────────
 
@@ -180,21 +81,7 @@ const ScriptViewer = memo(function ScriptViewer({
 }) {
     useScrollLock();
 
-    const CloseIcon = (
-        <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        >
-            <path d="M18 6 6 18" />
-            <path d="m6 6 12 12" />
-        </svg>
-    );
+    const CloseIcon = <X className="h-4 w-4" />;
 
     return (
         <div className="fixed inset-0 z-40 flex flex-col bg-white">

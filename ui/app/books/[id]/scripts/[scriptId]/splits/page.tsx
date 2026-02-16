@@ -6,6 +6,22 @@ import { useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
+    ArrowLeft,
+    GitBranch,
+    RefreshCw,
+    Sparkles,
+    Trash2,
+    Maximize2,
+    Eye,
+    X,
+    ChevronDown,
+    AudioLines,
+    Video,
+    Play,
+    MoreVertical,
+    AlertTriangle,
+} from "lucide-react";
+import {
     fetchBooks,
     fetchScripts,
     fetchSplits,
@@ -59,139 +75,30 @@ import {
     DropdownMenuTrigger,
     DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
+import VideoPlayerOverlayWrapper from "@/components/videoPlayerOverlay";
 
-// ── Static SVG icons (hoisted — rendering-hoist-jsx) ────────────────────────
+// ── Static icons (hoisted — rendering-hoist-jsx) ────────────────────────────
 
-const ArrowLeftIcon = (
-    <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="m12 19-7-7 7-7" />
-        <path d="M19 12H5" />
-    </svg>
-);
+const ArrowLeftIcon = <ArrowLeft className="h-4 w-4" />;
 
 const SplitEmptyIcon = (
-    <svg
+    <GitBranch
         className="mx-auto mb-3 h-10 w-10 text-neutral-300"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M16 3h5v5" />
-        <path d="M8 3H3v5" />
-        <path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3" />
-        <path d="m15 9 6-6" />
-    </svg>
+        strokeWidth={1.5}
+    />
 );
 
-const RefreshIcon = (
-    <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-        <path d="M3 3v5h5" />
-        <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-        <path d="M16 16h5v5" />
-    </svg>
-);
+const RefreshIcon = <RefreshCw className="h-4 w-4" />;
 
-const SparklesIcon = (
-    <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-    </svg>
-);
+const SparklesIcon = <Sparkles className="h-4 w-4" />;
 
-const TrashIcon = (
-    <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    </svg>
-);
+const TrashIcon = <Trash2 className="h-4 w-4" />;
 
-const ExpandIcon = (
-    <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <polyline points="15 3 21 3 21 9" />
-        <polyline points="9 21 3 21 3 15" />
-        <line x1="21" x2="14" y1="3" y2="10" />
-        <line x1="3" x2="10" y1="21" y2="14" />
-    </svg>
-);
+const ExpandIcon = <Maximize2 className="h-3.5 w-3.5" />;
 
-const EyeIcon = (
-    <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
-        <circle cx="12" cy="12" r="3" />
-    </svg>
-);
+const EyeIcon = <Eye className="h-3.5 w-3.5" />;
 
-const CloseIcon = (
-    <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M18 6 6 18" />
-        <path d="m6 6 12 12" />
-    </svg>
-);
+const CloseIcon = <X className="h-4 w-4" />;
 
 const HeroUnderline = (
     <svg
@@ -208,105 +115,17 @@ const HeroUnderline = (
     </svg>
 );
 
-const ChevronDownIcon = (
-    <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="m6 9 6 6 6-6" />
-    </svg>
-);
+const ChevronDownIcon = <ChevronDown className="h-4 w-4" />;
 
-const AudioIcon = (
-    <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M2 10v3" />
-        <path d="M6 6v11" />
-        <path d="M10 3v18" />
-        <path d="M14 8v7" />
-        <path d="M18 5v13" />
-        <path d="M22 10v3" />
-    </svg>
-);
+const AudioIcon = <AudioLines className="h-4 w-4" />;
 
-const VideoIcon = (
-    <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5" />
-        <rect x="2" y="6" width="14" height="12" rx="2" />
-    </svg>
-);
+const VideoIcon = <Video className="h-4 w-4" />;
 
-const PlayIcon = (
-    <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <polygon points="6 3 20 12 6 21 6 3" />
-    </svg>
-);
+const PlayIcon = <Play className="h-3.5 w-3.5" />;
 
-const MoreVerticalIcon = (
-    <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <circle cx="12" cy="12" r="1" />
-        <circle cx="12" cy="5" r="1" />
-        <circle cx="12" cy="19" r="1" />
-    </svg>
-);
+const MoreVerticalIcon = <MoreVertical className="h-4 w-4" />;
 
-const AlertTriangleIcon = (
-    <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-        <path d="M12 9v4" />
-        <path d="M12 17h.01" />
-    </svg>
-);
+const AlertTriangleIcon = <AlertTriangle className="h-4 w-4" />;
 
 // ── Effect label mapping ────────────────────────────────────────────────────
 
@@ -321,7 +140,11 @@ const EFFECT_LABELS: Record<string, string> = {
 
 // ── Available voices ────────────────────────────────────────────────────────
 
-interface Voice { name: string; gender: "Male" | "Female"; desc: string }
+interface Voice {
+    name: string;
+    gender: "Male" | "Female";
+    desc: string;
+}
 
 const VOICES: Voice[] = [
     { name: "Achernar", gender: "Female", desc: "Soft" },
@@ -410,12 +233,17 @@ const VoiceDialog = memo(function VoiceDialog({
                                         : "Select a voice"}
                                 </SelectValue>
                             </SelectTrigger>
-                            <SelectContent position="popper" className="max-h-64">
+                            <SelectContent
+                                position="popper"
+                                className="max-h-64"
+                            >
                                 <SelectGroup>
                                     <SelectLabel>Male</SelectLabel>
                                     {MALE_VOICES.map((v) => (
                                         <SelectItem key={v.name} value={v.name}>
-                                            <span className="font-medium">{v.name}</span>
+                                            <span className="font-medium">
+                                                {v.name}
+                                            </span>
                                             <span className="ml-1 text-muted-foreground">
                                                 — {v.desc}
                                             </span>
@@ -426,7 +254,9 @@ const VoiceDialog = memo(function VoiceDialog({
                                     <SelectLabel>Female</SelectLabel>
                                     {FEMALE_VOICES.map((v) => (
                                         <SelectItem key={v.name} value={v.name}>
-                                            <span className="font-medium">{v.name}</span>
+                                            <span className="font-medium">
+                                                {v.name}
+                                            </span>
                                             <span className="ml-1 text-muted-foreground">
                                                 — {v.desc}
                                             </span>
@@ -448,7 +278,10 @@ const VoiceDialog = memo(function VoiceDialog({
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>
+                    <Button
+                        variant="outline"
+                        onClick={() => onOpenChange(false)}
+                    >
                         Cancel
                     </Button>
                     <Button onClick={handleSubmit} className="gap-1.5">
@@ -568,48 +401,6 @@ const AudioPlayer = memo(function AudioPlayer({
     );
 });
 
-// ── Video player overlay ────────────────────────────────────────────────────
-
-const VideoPlayer = memo(function VideoPlayer({
-    url,
-    label,
-    onClose,
-}: {
-    url: string;
-    label: string;
-    onClose: () => void;
-}) {
-    useScrollLock();
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
-            <div className="relative mx-4 w-full max-w-3xl">
-                <div className="mb-3 flex items-center justify-between">
-                    <span className="text-sm font-medium text-white/80">{label}</span>
-                    <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={onClose}
-                        aria-label="Close player"
-                        className="text-white/70 hover:bg-white/10 hover:text-white"
-                    >
-                        {CloseIcon}
-                    </Button>
-                </div>
-                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                <video
-                    controls
-                    autoPlay
-                    className="w-full rounded-[6px_8px_7px_5px]"
-                    src={url}
-                >
-                    Your browser does not support the video element.
-                </video>
-            </div>
-        </div>
-    );
-});
-
 // ── Split card ──────────────────────────────────────────────────────────────
 
 const SplitCard = memo(function SplitCard({
@@ -705,16 +496,22 @@ const SplitCard = memo(function SplitCard({
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Generate</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => onGenerateAudio(split)}>
+                                <DropdownMenuItem
+                                    onClick={() => onGenerateAudio(split)}
+                                >
                                     {AudioIcon}
-                                    {split.audioURL ? "Regenerate Audio" : "Generate Audio"}
+                                    {split.audioURL
+                                        ? "Regenerate Audio"
+                                        : "Generate Audio"}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                     onClick={() => onGenerateVideo(split)}
                                     disabled={!split.audioURL}
                                 >
                                     {VideoIcon}
-                                    {split.videoURL ? "Regenerate Video" : "Generate Video"}
+                                    {split.videoURL
+                                        ? "Regenerate Video"
+                                        : "Generate Video"}
                                     {!split.audioURL ? (
                                         <span className="ml-auto text-[10px] text-neutral-400">
                                             needs audio
@@ -764,7 +561,9 @@ const SplitsListContent = memo(function SplitsListContent({
         return (
             <div className="py-8 text-center text-sm font-medium text-foreground">
                 Failed to load splits —{" "}
-                {fetchError instanceof ApiError ? fetchError.message : "network error"}
+                {fetchError instanceof ApiError
+                    ? fetchError.message
+                    : "network error"}
             </div>
         );
     }
@@ -772,7 +571,9 @@ const SplitsListContent = memo(function SplitsListContent({
     return splits.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
             {SplitEmptyIcon}
-            <p className="text-sm font-medium text-foreground">No splits yet.</p>
+            <p className="text-sm font-medium text-foreground">
+                No splits yet.
+            </p>
             <span className="text-xs">
                 Generate splits for this script using the button above.
             </span>
@@ -808,28 +609,31 @@ export default function SplitsPage() {
     const [confirmVideos, setConfirmVideos] = useState(false);
     const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
     const [viewingScript, setViewingScript] = useState(false);
-    const [audioPlayerState, setAudioPlayerState] = useState<{ url: string; label: string } | null>(null);
-    const [videoPlayerState, setVideoPlayerState] = useState<{ url: string; label: string } | null>(null);
+    const [audioPlayerState, setAudioPlayerState] = useState<{
+        url: string;
+        label: string;
+    } | null>(null);
+    const [videoPlayerState, setVideoPlayerState] = useState<{
+        url: string;
+        label: string;
+    } | null>(null);
 
     // Voice dialog state
     const [voiceDialogOpen, setVoiceDialogOpen] = useState(false);
     const [voiceDialogMode, setVoiceDialogMode] = useState<
-        | { type: "all" }
-        | { type: "split"; splitId: number; splitLabel: string }
+        { type: "all" } | { type: "split"; splitId: number; splitLabel: string }
     >({ type: "all" });
 
     // -- stable callbacks
-    const handleClearOpenChange = useCallback(
-        (open: boolean) => { if (!open) setConfirmClear(false); },
-        []
-    );
-    const handleConfirmVideosOpenChange = useCallback(
-        (open: boolean) => { if (!open) setConfirmVideos(false); },
-        []
-    );
+    const handleClearOpenChange = useCallback((open: boolean) => {
+        if (!open) setConfirmClear(false);
+    }, []);
+    const handleConfirmVideosOpenChange = useCallback((open: boolean) => {
+        if (!open) setConfirmVideos(false);
+    }, []);
     const handleViewImage = useCallback(
         (index: number) => setLightboxIdx(index),
-        []
+        [],
     );
     const closeLightbox = useCallback(() => setLightboxIdx(null), []);
     const closeScriptViewer = useCallback(() => setViewingScript(false), []);
@@ -842,7 +646,7 @@ export default function SplitsPage() {
         queryFn: () => fetchBooks(),
     });
     const book: Book | undefined = booksData?.data?.books?.find(
-        (b) => b.id === bookId
+        (b) => b.id === bookId,
     );
 
     // -- fetch script info
@@ -852,7 +656,7 @@ export default function SplitsPage() {
         enabled: !isNaN(bookId) && bookId > 0,
     });
     const script: Script | undefined = (scriptsData?.data?.scripts ?? []).find(
-        (s) => s.id === scriptId
+        (s) => s.id === scriptId,
     );
 
     // -- fetch splits
@@ -869,10 +673,7 @@ export default function SplitsPage() {
     const hasSplits = splits.length > 0;
 
     // -- derived: check if any split has audio
-    const hasAnyAudio = useMemo(
-        () => splits.some((s) => s.audioURL),
-        [splits]
-    );
+    const hasAnyAudio = useMemo(() => splits.some((s) => s.audioURL), [splits]);
 
     // -- lightbox items from splits
     const lightboxItems: LightboxItem[] = useMemo(
@@ -888,12 +689,16 @@ export default function SplitsPage() {
                     videoURL: s.videoURL,
                     splitId: s.id,
                 })),
-        [splits]
+        [splits],
     );
 
     // -- lightbox callbacks
     const handleLightboxGenerateAudio = useCallback((splitId: number) => {
-        setVoiceDialogMode({ type: "split", splitId, splitLabel: `Split ${splitId}` });
+        setVoiceDialogMode({
+            type: "split",
+            splitId,
+            splitLabel: `Split ${splitId}`,
+        });
         setVoiceDialogOpen(true);
     }, []);
 
@@ -901,7 +706,9 @@ export default function SplitsPage() {
         toast.info("Generating video for split…", { duration: 3000 });
         generateSplitVideo(splitId).catch((err) => {
             toast.error(
-                err instanceof ApiError ? err.businessError : "Video generation failed"
+                err instanceof ApiError
+                    ? err.businessError
+                    : "Video generation failed",
             );
         });
     }, []);
@@ -917,7 +724,7 @@ export default function SplitsPage() {
         onError: (err) => {
             setConfirmClear(false);
             toast.error(
-                err instanceof ApiError ? err.businessError : "Clear failed"
+                err instanceof ApiError ? err.businessError : "Clear failed",
             );
         },
     });
@@ -928,14 +735,17 @@ export default function SplitsPage() {
 
     // -- fire-and-forget: generate splits
     const handleGenerateSplits = useCallback(() => {
-        toast.info(`Generating splits for "${script?.name ?? `Script #${scriptId}`}"…`, { duration: 3000 });
+        toast.info(
+            `Generating splits for "${script?.name ?? `Script #${scriptId}`}"…`,
+            { duration: 3000 },
+        );
         generateSplits(scriptId).catch((err) => {
             toast.error(
                 err instanceof ApiError
                     ? err.isValidationError
                         ? err.validationErrors.map((v) => v.message).join(", ")
                         : err.businessError
-                    : "Split generation failed — please retry"
+                    : "Split generation failed — please retry",
             );
         });
     }, [scriptId, script?.name]);
@@ -950,20 +760,26 @@ export default function SplitsPage() {
                 voiceStyle: voiceStyle || undefined,
             }).catch((err) => {
                 toast.error(
-                    err instanceof ApiError ? err.businessError : "Audio generation failed"
+                    err instanceof ApiError
+                        ? err.businessError
+                        : "Audio generation failed",
                 );
             });
         },
-        [scriptId]
+        [scriptId],
     );
 
     // -- fire-and-forget: generate all videos
     const handleGenerateAllVideos = useCallback(() => {
         setConfirmVideos(false);
-        toast.info("Generating video for all splits with audio…", { duration: 3000 });
+        toast.info("Generating video for all splits with audio…", {
+            duration: 3000,
+        });
         generateAllVideos(scriptId).catch((err) => {
             toast.error(
-                err instanceof ApiError ? err.businessError : "Video generation failed"
+                err instanceof ApiError
+                    ? err.businessError
+                    : "Video generation failed",
             );
         });
     }, [scriptId]);
@@ -978,11 +794,13 @@ export default function SplitsPage() {
                 voiceStyle: voiceStyle || undefined,
             }).catch((err) => {
                 toast.error(
-                    err instanceof ApiError ? err.businessError : "Audio generation failed"
+                    err instanceof ApiError
+                        ? err.businessError
+                        : "Audio generation failed",
                 );
             });
         },
-        []
+        [],
     );
 
     // -- fire-and-forget: generate single split video
@@ -994,7 +812,9 @@ export default function SplitsPage() {
         toast.info("Generating video for split…", { duration: 3000 });
         generateSplitVideo(split.id).catch((err) => {
             toast.error(
-                err instanceof ApiError ? err.businessError : "Video generation failed"
+                err instanceof ApiError
+                    ? err.businessError
+                    : "Video generation failed",
             );
         });
     }, []);
@@ -1022,15 +842,23 @@ export default function SplitsPage() {
             if (voiceDialogMode.type === "all") {
                 handleGenerateAllAudios(voice, voiceStyle);
             } else {
-                handleGenerateSplitAudio(voice, voiceStyle, voiceDialogMode.splitId);
+                handleGenerateSplitAudio(
+                    voice,
+                    voiceStyle,
+                    voiceDialogMode.splitId,
+                );
             }
         },
-        [voiceDialogMode, handleGenerateAllAudios, handleGenerateSplitAudio]
+        [voiceDialogMode, handleGenerateAllAudios, handleGenerateSplitAudio],
     );
 
     // -- open voice dialog for a split
     const handleOpenSplitAudioDialog = useCallback((split: Split) => {
-        setVoiceDialogMode({ type: "split", splitId: split.id, splitLabel: `Split ${split.id}` });
+        setVoiceDialogMode({
+            type: "split",
+            splitId: split.id,
+            splitLabel: `Split ${split.id}`,
+        });
         setVoiceDialogOpen(true);
     }, []);
 
@@ -1040,7 +868,7 @@ export default function SplitsPage() {
     // count splits without audio for warning
     const splitsWithoutAudio = useMemo(
         () => splits.filter((s) => !s.audioURL).length,
-        [splits]
+        [splits],
     );
 
     return (
@@ -1073,7 +901,7 @@ export default function SplitsPage() {
 
             {/* ── Video player ── */}
             {videoPlayerState ? (
-                <VideoPlayer
+                <VideoPlayerOverlayWrapper
                     url={videoPlayerState.url}
                     label={videoPlayerState.label}
                     onClose={closeVideoPlayer}
@@ -1106,9 +934,10 @@ export default function SplitsPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Clear all splits?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            All {splits.length} split{splits.length !== 1 ? "s" : ""} for
-                            &ldquo;{scriptName}&rdquo; will be permanently removed. You can
-                            regenerate them afterwards.
+                            All {splits.length} split
+                            {splits.length !== 1 ? "s" : ""} for &ldquo;
+                            {scriptName}&rdquo; will be permanently removed. You
+                            can regenerate them afterwards.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -1134,12 +963,17 @@ export default function SplitsPage() {
                         <AlertDialogDescription asChild>
                             <div className="space-y-2">
                                 <p>
-                                    This will queue video generation for all splits that have audio.
+                                    This will queue video generation for all
+                                    splits that have audio.
                                 </p>
                                 {splitsWithoutAudio > 0 ? (
                                     <p className="rounded-[4px_6px_5px_3px] border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs font-medium text-foreground">
-                                        {splitsWithoutAudio} split{splitsWithoutAudio !== 1 ? "s" : ""} without audio will be skipped.
-                                        Generate audio first for full coverage.
+                                        {splitsWithoutAudio} split
+                                        {splitsWithoutAudio !== 1
+                                            ? "s"
+                                            : ""}{" "}
+                                        without audio will be skipped. Generate
+                                        audio first for full coverage.
                                     </p>
                                 ) : null}
                             </div>
@@ -1197,7 +1031,9 @@ export default function SplitsPage() {
                                         className="gap-1.5"
                                     >
                                         {AudioIcon}
-                                        <span className="max-sm:hidden">Generate Audios</span>
+                                        <span className="max-sm:hidden">
+                                            Generate Audios
+                                        </span>
                                         <span className="sm:hidden">Audio</span>
                                     </Button>
 
@@ -1208,32 +1044,48 @@ export default function SplitsPage() {
                                         className="gap-1.5"
                                     >
                                         {VideoIcon}
-                                        <span className="max-sm:hidden">Generate Videos</span>
+                                        <span className="max-sm:hidden">
+                                            Generate Videos
+                                        </span>
                                         <span className="sm:hidden">Video</span>
                                     </Button>
 
                                     {/* Overflow menu for secondary actions */}
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <Button variant="outline" size="icon-sm" aria-label="More actions">
+                                            <Button
+                                                variant="outline"
+                                                size="icon-sm"
+                                                aria-label="More actions"
+                                            >
                                                 {ChevronDownIcon}
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             {script ? (
-                                                <DropdownMenuItem onClick={() => setViewingScript(true)}>
+                                                <DropdownMenuItem
+                                                    onClick={() =>
+                                                        setViewingScript(true)
+                                                    }
+                                                >
                                                     {EyeIcon}
                                                     View Script
                                                 </DropdownMenuItem>
                                             ) : null}
-                                            <DropdownMenuItem onClick={handleGenerateSplits}>
+                                            <DropdownMenuItem
+                                                onClick={handleGenerateSplits}
+                                            >
                                                 {RefreshIcon}
                                                 Regenerate Splits
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem
-                                                onClick={() => setConfirmClear(true)}
-                                                disabled={clearMutation.isPending}
+                                                onClick={() =>
+                                                    setConfirmClear(true)
+                                                }
+                                                disabled={
+                                                    clearMutation.isPending
+                                                }
                                             >
                                                 {TrashIcon}
                                                 Clear Splits
@@ -1246,7 +1098,9 @@ export default function SplitsPage() {
                                     {script ? (
                                         <Button
                                             variant="outline"
-                                            onClick={() => setViewingScript(true)}
+                                            onClick={() =>
+                                                setViewingScript(true)
+                                            }
                                             className="gap-1.5"
                                         >
                                             {EyeIcon}

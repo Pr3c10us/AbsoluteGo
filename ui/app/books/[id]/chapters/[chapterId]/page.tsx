@@ -4,6 +4,7 @@ import { memo, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery, useQueries } from "@tanstack/react-query";
+import { ArrowLeft, Maximize2, LayoutGrid, X, FileImage, Layers, File } from "lucide-react";
 import {
     fetchBooks,
     fetchChapters,
@@ -19,139 +20,21 @@ import { Button } from "@/components/ui/button";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import Lightbox, { type LightboxItem } from "@/components/lightbox";
 
-// ── Static SVG icons (hoisted — rendering-hoist-jsx) ────────────────────────
+// ── Static icons (hoisted — rendering-hoist-jsx) ────────────────────────────
 
-const ArrowLeftIcon = (
-    <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="m12 19-7-7 7-7" />
-        <path d="M19 12H5" />
-    </svg>
-);
+const ArrowLeftIcon = <ArrowLeft className="h-4 w-4" />;
 
-const ExpandIcon = (
-    <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <polyline points="15 3 21 3 21 9" />
-        <polyline points="9 21 3 21 3 15" />
-        <line x1="21" x2="14" y1="3" y2="10" />
-        <line x1="3" x2="10" y1="21" y2="14" />
-    </svg>
-);
+const ExpandIcon = <Maximize2 className="h-3.5 w-3.5" />;
 
-const GridIcon = (
-    <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <rect x="3" y="3" width="7" height="7" />
-        <rect x="14" y="3" width="7" height="7" />
-        <rect x="3" y="14" width="7" height="7" />
-        <rect x="14" y="14" width="7" height="7" />
-    </svg>
-);
+const GridIcon = <LayoutGrid className="h-3.5 w-3.5" />;
 
-const CloseIcon = (
-    <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M18 6 6 18" />
-        <path d="m6 6 12 12" />
-    </svg>
-);
+const CloseIcon = <X className="h-4 w-4" />;
 
-const PagesEmptyIcon = (
-    <svg
-        className="mx-auto mb-3 h-10 w-10 text-neutral-300"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <rect x="2" y="3" width="20" height="18" rx="2" />
-        <line x1="8" x2="8" y1="3" y2="21" />
-    </svg>
-);
+const PagesEmptyIcon = <FileImage className="mx-auto mb-3 h-10 w-10 text-neutral-300" strokeWidth={1.5} />;
 
-const LayersIcon = (
-    <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.84Z" />
-        <path d="m2 12 8.59 3.91a2 2 0 0 0 1.66 0L21 12" />
-        <path d="m2 17 8.59 3.91a2 2 0 0 0 1.66 0L21 17" />
-    </svg>
-);
+const LayersIcon = <Layers className="h-3.5 w-3.5" />;
 
-const FileIcon = (
-    <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-        <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-    </svg>
-);
-
-const PanelsEmptyIcon = (
-    <svg
-        className="mx-auto mb-3 h-10 w-10 text-neutral-300"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.84Z" />
-        <path d="m2 12 8.59 3.91a2 2 0 0 0 1.66 0L21 12" />
-        <path d="m2 17 8.59 3.91a2 2 0 0 0 1.66 0L21 17" />
-    </svg>
-);
+const FileIcon = <File className="h-3.5 w-3.5" />;
 
 const HeroUnderline = (
     <svg
@@ -167,6 +50,8 @@ const HeroUnderline = (
         />
     </svg>
 );
+
+const PanelsEmptyIcon = <Layers className="mx-auto mb-3 h-10 w-10 text-neutral-300" strokeWidth={1.5} />;
 
 // ── Panel viewer overlay (with its own lightbox) ────────────────────────────
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Trash2, ArrowLeft, Upload, BookOpen, FileText, Check } from "lucide-react";
 import {
     fetchBooks,
     fetchChapters,

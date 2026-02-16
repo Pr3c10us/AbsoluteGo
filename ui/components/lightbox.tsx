@@ -8,6 +8,7 @@ import {
     useState,
     type PointerEvent as ReactPointerEvent,
 } from "react";
+import { X, ChevronLeft, ChevronRight, AlignLeft, AudioLines, Video, Play, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 
@@ -39,136 +40,23 @@ interface LightboxProps {
     onGenerateVideo?: (splitId: number) => void;
 }
 
-// ── Static SVG icons (hoisted — rendering-hoist-jsx) ────────────────────────
+// ── Static icons (hoisted — rendering-hoist-jsx) ────────────────────────────
 
-const CloseIcon = (
-    <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M18 6 6 18" />
-        <path d="m6 6 12 12" />
-    </svg>
-);
+const CloseIcon = <X className="h-5 w-5" />;
 
-const ChevronLeftIcon = (
-    <svg
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="m15 18-6-6 6-6" />
-    </svg>
-);
+const ChevronLeftIcon = <ChevronLeft className="h-6 w-6" />;
 
-const ChevronRightIcon = (
-    <svg
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="m9 18 6-6-6-6" />
-    </svg>
-);
+const ChevronRightIcon = <ChevronRight className="h-6 w-6" />;
 
-const TextIcon = (
-    <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M17 6.1H3" />
-        <path d="M21 12.1H3" />
-        <path d="M15.1 18H3" />
-    </svg>
-);
+const TextIcon = <AlignLeft className="h-4 w-4" />;
 
-const LbAudioIcon = (
-    <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M2 10v3" />
-        <path d="M6 6v11" />
-        <path d="M10 3v18" />
-        <path d="M14 8v7" />
-        <path d="M18 5v13" />
-        <path d="M22 10v3" />
-    </svg>
-);
+const LbAudioIcon = <AudioLines className="h-3.5 w-3.5" />;
 
-const LbVideoIcon = (
-    <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5" />
-        <rect x="2" y="6" width="14" height="12" rx="2" />
-    </svg>
-);
+const LbVideoIcon = <Video className="h-3.5 w-3.5" />;
 
-const LbPlayIcon = (
-    <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <polygon points="6 3 20 12 6 21 6 3" />
-    </svg>
-);
+const LbPlayIcon = <Play className="h-3.5 w-3.5" />;
 
-const LbSparklesIcon = (
-    <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-    </svg>
-);
+const LbSparklesIcon = <Sparkles className="h-3.5 w-3.5" />;
 
 // ── Component ───────────────────────────────────────────────────────────────
 

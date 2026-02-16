@@ -18,58 +18,15 @@ import {
 } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { BookOpen, FileText, Video } from "lucide-react";
 
-// ── Static SVG icons (hoisted — rendering-hoist-jsx) ────────────────────────
+// ── Static icons (hoisted — rendering-hoist-jsx) ────────────────────────────
 
-const BookIcon = (
-    <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
-    </svg>
-);
+const BookIcon = <BookOpen className="h-5 w-5" strokeWidth={1.8} />;
 
-const ScriptIcon = (
-    <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-        <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-        <path d="M10 13H8" />
-        <path d="M16 17H8" />
-        <path d="M16 13h-2" />
-    </svg>
-);
+const ScriptIcon = <FileText className="h-5 w-5" strokeWidth={1.8} />;
 
-const VideoIcon = (
-    <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.934a.5.5 0 0 0-.777-.416L16 11" />
-        <rect x="2" y="6" width="14" height="12" rx="2" />
-    </svg>
-);
+const VideoIcon = <Video className="h-5 w-5" strokeWidth={1.8} />;
 
 // ── ReactBits Dock internals (adapted) ──────────────────────────────────────
 

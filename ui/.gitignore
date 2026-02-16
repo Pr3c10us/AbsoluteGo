@@ -43,3 +43,6 @@ next-env.d.ts
 .agent*
 .claude
 nul
+
+AGENTS.md
+CLAUDE.md
