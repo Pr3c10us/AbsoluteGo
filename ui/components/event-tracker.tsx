@@ -1,7 +1,5 @@
 "use client";
 
-import "./event-tracker.css";
-
 import {
     memo,
     useState,
@@ -32,7 +30,7 @@ import {
 // ── Static SVG icons (hoisted) ──────────────────────────────────────────────
 
 const SpinnerIcon = (
-    <svg className="et-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
         <path d="M21 12a9 9 0 1 1-6.219-8.56" />
     </svg>
 );
@@ -387,7 +385,7 @@ const EventTracker = memo(function EventTracker() {
         <>
             {/* ── Persistent pill ── */}
             <button
-                className={`et-pill ${dragging ? "et-pill--dragging" : ""} ${activeCount > 0 ? "et-pill--active" : ""}`}
+                className={`fixed z-40 pointer-events-auto w-11 h-11 rounded-full border border-white/[0.12] bg-black text-white flex items-center justify-center select-none touch-none p-0 overflow-visible ${dragging ? "cursor-grabbing shadow-[0_8px_32px_rgba(0,0,0,0.5)]" : "cursor-grab shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.45)]"} ${activeCount > 0 ? "shadow-[0_0_16px_rgba(0,0,0,0.3),0_0_0_2px_rgba(255,255,255,0.08)]" : ""}`}
                 style={{
                     left: position.x,
                     top: position.y,
@@ -405,7 +403,7 @@ const EventTracker = memo(function EventTracker() {
             >
                 {activeCount > 0 ? SpinnerIcon : EventsIcon}
                 {activeCount > 0 ? (
-                    <span className="et-pill-badge">{activeCount}</span>
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-white text-black text-[0.6rem] font-extrabold flex items-center justify-center leading-none pointer-events-none">{activeCount}</span>
                 ) : null}
             </button>
 
@@ -413,14 +411,14 @@ const EventTracker = memo(function EventTracker() {
             {expanded ? (
                 <div
                     ref={panelRef}
-                    className="et-panel"
+                    className="fixed z-40 pointer-events-auto w-[340px] rounded-xl border border-black/[0.08] bg-white shadow-[0_8px_32px_rgba(0,0,0,0.12)] font-sans animate-in fade-in-0 zoom-in-[0.96] duration-150 overflow-hidden"
                     style={panelStyle}
                     onMouseEnter={() => { if (!pinned) showPanel(); }}
                     onMouseLeave={() => { if (!pinned) scheduleHide(); }}
                 >
                     {/* Header */}
-                    <div className="et-panel-header">
-                        <span className="et-panel-title">
+                    <div className="flex items-center px-3 py-2.5 border-b border-black/[0.06]">
+                        <span className="text-[0.7rem] font-bold tracking-[0.02em] uppercase text-black">
                             {activeCount > 0
                                 ? `Processing ${activeCount} event${activeCount > 1 ? "s" : ""}…`
                                 : "Events"}
@@ -428,7 +426,7 @@ const EventTracker = memo(function EventTracker() {
                     </div>
 
                     {/* Filters */}
-                    <div className="et-filters">
+                    <div className="flex gap-1.5 px-3 py-2 border-b border-black/[0.06]">
                         <Select value={filterStatus} onValueChange={setFilterStatus}>
                             <SelectTrigger size="sm" className="h-7 text-xs flex-1">
                                 <SelectValue />
@@ -458,32 +456,32 @@ const EventTracker = memo(function EventTracker() {
 
                     {/* Event list */}
                     {events.length === 0 ? (
-                        <div className="et-empty">No events found</div>
+                        <div className="py-6 px-3 text-center text-[0.7rem] text-neutral-400">No events found</div>
                     ) : (
-                        <ScrollArea className="et-scroll-area">
-                            <ul className="et-panel-list">
+                        <ScrollArea className="max-h-[260px]">
+                            <ul className="list-none m-0 py-1.5">
                                 {events.map((event) => {
                                     const href = getEventHref(event);
                                     const clickable = href !== null;
                                     return (
                                         <li
                                             key={event.Id}
-                                            className={`et-panel-item ${clickable ? "" : "et-panel-item--disabled"}`}
+                                            className={`flex items-center gap-2 px-3 py-2 rounded transition-colors duration-150 ${clickable ? "cursor-pointer hover:bg-black/[0.03]" : "cursor-default opacity-60"}`}
                                             onClick={() => {
                                                 if (clickable) handleEventClick(event);
                                             }}
                                         >
-                                            <span className="et-panel-item-icon">
+                                            <span className="flex shrink-0 text-black">
                                                 {getStatusIcon(event.Status)}
                                             </span>
-                                            <div className="et-panel-item-info">
-                                                <span className="et-panel-item-name">
+                                            <div className="flex flex-col flex-1 min-w-0">
+                                                <span className="text-xs font-semibold text-black truncate">
                                                     {getOperationLabel(event.Operation)}
                                                 </span>
-                                                <span className="et-panel-item-desc">
+                                                <span className="text-[0.6rem] text-neutral-500 truncate max-w-[200px]">
                                                     {event.Description}
                                                 </span>
-                                                <span className="et-panel-item-time">
+                                                <span className="text-[0.55rem] text-neutral-400 mt-px">
                                                     {timeAgo(event.UpdatedAt)}
                                                 </span>
                                             </div>
@@ -499,7 +497,7 @@ const EventTracker = memo(function EventTracker() {
 
                     {/* Pagination */}
                     {(page > 1 || hasMore) && (
-                        <div className="et-pagination">
+                        <div className="flex items-center justify-between px-3 py-1.5 pb-2 border-t border-black/[0.06]">
                             <Button
                                 variant="ghost"
                                 size="sm"
@@ -509,7 +507,7 @@ const EventTracker = memo(function EventTracker() {
                             >
                                 ← Prev
                             </Button>
-                            <span className="et-page-label">Page {page}</span>
+                            <span className="text-[0.6rem] text-neutral-500 font-medium">Page {page}</span>
                             <Button
                                 variant="ghost"
                                 size="sm"

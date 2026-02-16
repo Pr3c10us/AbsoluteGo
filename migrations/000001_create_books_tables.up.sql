@@ -64,9 +64,11 @@ CREATE TABLE IF NOT EXISTS splits
 
 CREATE TABLE IF NOT EXISTS vabs
 (
-    id   INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    url  TEXT
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    name      TEXT    NOT NULL,
+    url       TEXT,
+    script_id INTEGER NOT NULL,
+    FOREIGN KEY (script_id) REFERENCES scripts (id) ON DELETE CASCADE
 );
 
 CREATE TRIGGER IF NOT EXISTS trg_pages_updated_at

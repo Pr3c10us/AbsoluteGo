@@ -1,7 +1,5 @@
 "use client";
 
-import "./dock.css";
-
 import {
     motion,
     useMotionValue,
@@ -123,7 +121,7 @@ function DockItem({
             onFocus={() => isHovered.set(1)}
             onBlur={() => isHovered.set(0)}
             onClick={onClick}
-            className={`dock-item ${className}`}
+            className={`relative inline-flex items-center justify-center rounded-[10px_12px_11px_9px] bg-black border border-white/[0.08] cursor-pointer outline-none text-white/60 transition-colors hover:text-white/95 ${className}`}
             tabIndex={0}
             role="button"
             aria-haspopup="true"
@@ -161,7 +159,7 @@ function DockLabel({
                     animate={{ opacity: 1, y: -10 }}
                     exit={{ opacity: 0, y: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="dock-label"
+                    className="absolute -top-9 left-1/2 w-fit whitespace-pre rounded-[5px_7px_6px_4px] border border-white/10 bg-black px-2.5 py-2.5 text-[0.7rem] font-medium tracking-[0.04em] text-white"
                     role="tooltip"
                     style={{ x: "-50%" }}
                 >
@@ -173,7 +171,7 @@ function DockLabel({
 }
 
 function DockIcon({ children }: { children: React.ReactNode }) {
-    return <div className="dock-icon">{children}</div>;
+    return <div className="flex items-center justify-center">{children}</div>;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -225,7 +223,7 @@ export default function Dock() {
     return (
         <motion.div
             style={{ height, scrollbarWidth: "none" }}
-            className="dock-outer"
+            className="fixed bottom-0 left-1/2 -translate-x-1/2 z-40 flex max-w-full items-center mx-2"
         >
             <motion.div
                 onMouseMove={({ pageX }) => {
@@ -236,7 +234,7 @@ export default function Dock() {
                     isHovered.set(0);
                     mouseX.set(Infinity);
                 }}
-                className="dock-panel"
+                className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-end w-fit gap-3 rounded-[14px_16px_15px_13px] bg-black border border-white/10 px-2 pb-2 shadow-[0_8px_32px_rgba(0,0,0,0.35)]"
                 style={{ height: PANEL_HEIGHT }}
                 role="toolbar"
                 aria-label="Application dock"
@@ -251,14 +249,14 @@ export default function Dock() {
                             : pathname === href || pathname.startsWith(href + "/");
 
                     return (
-                        <Link key={href} href={href} className="dock-link">
+                        <Link key={href} href={href} className="no-underline leading-none">
                             <DockItem
                                 mouseX={mouseX}
                                 spring={SPRING}
                                 distance={DISTANCE}
                                 magnification={MAGNIFICATION}
                                 baseItemSize={BASE_ITEM_SIZE}
-                                className={isActive ? "dock-item--active" : ""}
+                                className={isActive ? "!text-white bg-white/[0.12] shadow-[0_0_12px_rgba(255,255,255,0.1)]" : ""}
                             >
                                 <DockIcon>{icon}</DockIcon>
                                 <DockLabel>{label}</DockLabel>
