@@ -20,6 +20,12 @@ export interface LightboxItem {
     description?: string;
     /** Optional small tag shown above the description (e.g. effect name) */
     tag?: string;
+    /** Optional audio URL for this item */
+    audioURL?: string | null;
+    /** Optional video URL for this item */
+    videoURL?: string | null;
+    /** Split ID for action callbacks */
+    splitId?: number;
 }
 
 interface LightboxProps {
@@ -27,6 +33,10 @@ interface LightboxProps {
     currentIndex: number;
     onIndexChange: (index: number) => void;
     onClose: () => void;
+    /** Callback to generate audio for a split (opens voice dialog) */
+    onGenerateAudio?: (splitId: number) => void;
+    /** Callback to generate video for a split */
+    onGenerateVideo?: (splitId: number) => void;
 }
 
 // ── Static SVG icons (hoisted — rendering-hoist-jsx) ────────────────────────
@@ -94,6 +104,72 @@ const TextIcon = (
     </svg>
 );
 
+const LbAudioIcon = (
+    <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    >
+        <path d="M2 10v3" />
+        <path d="M6 6v11" />
+        <path d="M10 3v18" />
+        <path d="M14 8v7" />
+        <path d="M18 5v13" />
+        <path d="M22 10v3" />
+    </svg>
+);
+
+const LbVideoIcon = (
+    <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    >
+        <path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5" />
+        <rect x="2" y="6" width="14" height="12" rx="2" />
+    </svg>
+);
+
+const LbPlayIcon = (
+    <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    >
+        <polygon points="6 3 20 12 6 21 6 3" />
+    </svg>
+);
+
+const LbSparklesIcon = (
+    <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    >
+        <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+    </svg>
+);
+
 // ── Component ───────────────────────────────────────────────────────────────
 
 const Lightbox = memo(function Lightbox({
@@ -101,7 +177,10 @@ const Lightbox = memo(function Lightbox({
     currentIndex,
     onIndexChange,
     onClose,
+    onGenerateAudio,
+    onGenerateVideo,
 }: LightboxProps) {
+    const [playingAudio, setPlayingAudio] = useState(false);
     const hasPrev = currentIndex > 0;
     const hasNext = currentIndex < items.length - 1;
     const hasAnyDescription = items.some((item) => item.description);
@@ -186,8 +265,9 @@ const Lightbox = memo(function Lightbox({
         setThumbDragging(false);
     }, []);
 
-    // Scroll active thumbnail into view on index change
+    // Scroll active thumbnail into view on index change + reset audio player
     useEffect(() => {
+        setPlayingAudio(false);
         const el = thumbRef.current;
         if (!el) return;
         const active = el.children[currentIndex] as HTMLElement | undefined;
@@ -285,6 +365,84 @@ const Lightbox = memo(function Lightbox({
                             <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-white/85">
                                 {current.description}
                             </p>
+
+                            {/* ── Media section ── */}
+                            {(current.audioURL || current.videoURL || current.splitId) ? (
+                                <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
+                                    <span className="block text-[10px] font-semibold uppercase tracking-widest text-white/50">
+                                        Media
+                                    </span>
+
+                                    {/* Audio player */}
+                                    {current.audioURL ? (
+                                        <div>
+                                            <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-white/70">
+                                                {LbAudioIcon}
+                                                Audio
+                                            </div>
+                                            {playingAudio ? (
+                                                <div>
+                                                    {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                                                    <audio
+                                                        controls
+                                                        autoPlay
+                                                        className="w-full h-8"
+                                                        src={current.audioURL}
+                                                        onEnded={() => setPlayingAudio(false)}
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => setPlayingAudio(true)}
+                                                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-[3px_5px_4px_3px] bg-white/15 px-2.5 py-1 text-[11px] font-medium text-white/80 transition-colors hover:bg-white/25"
+                                                >
+                                                    {LbPlayIcon}
+                                                    Play Audio
+                                                </button>
+                                            )}
+                                        </div>
+                                    ) : current.splitId && onGenerateAudio ? (
+                                        <button
+                                            onClick={() => onGenerateAudio(current.splitId!)}
+                                            className="inline-flex cursor-pointer items-center gap-1.5 rounded-[3px_5px_4px_3px] bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/60 transition-colors hover:bg-white/20 hover:text-white/80"
+                                        >
+                                            {LbSparklesIcon}
+                                            Generate Audio
+                                        </button>
+                                    ) : null}
+
+                                    {/* Video link / generate */}
+                                    {current.videoURL ? (
+                                        <div>
+                                            <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-white/70">
+                                                {LbVideoIcon}
+                                                Video
+                                            </div>
+                                            <a
+                                                href={current.videoURL}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-[3px_5px_4px_3px] bg-white/15 px-2.5 py-1 text-[11px] font-medium text-white/80 transition-colors hover:bg-white/25"
+                                            >
+                                                {LbPlayIcon}
+                                                Play Video
+                                            </a>
+                                        </div>
+                                    ) : current.splitId && current.audioURL && onGenerateVideo ? (
+                                        <button
+                                            onClick={() => onGenerateVideo(current.splitId!)}
+                                            className="inline-flex cursor-pointer items-center gap-1.5 rounded-[3px_5px_4px_3px] bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/60 transition-colors hover:bg-white/20 hover:text-white/80"
+                                        >
+                                            {LbSparklesIcon}
+                                            Generate Video
+                                        </button>
+                                    ) : current.splitId && !current.audioURL ? (
+                                        <span className="block text-[11px] text-white/30">
+                                            Video needs audio first
+                                        </span>
+                                    ) : null}
+                                </div>
+                            ) : null}
                         </div>
                     </div>
                 ) : null}

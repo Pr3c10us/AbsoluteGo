@@ -2,17 +2,20 @@
 
 import { memo, useState, useCallback, useRef } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
     fetchBooks,
     fetchChapters,
+    fetchScripts,
     deleteChapter,
     addChapter,
+    generateScript,
     ApiError,
     type Book,
     type Chapter,
+    type Script,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +29,14 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from "@/components/ui/dialog";
 
 // ── Static SVG icons (hoisted — rendering-hoist-jsx) ────────────────────────
 
@@ -106,6 +117,75 @@ const HeroUnderline = (
         />
     </svg>
 );
+
+const ScriptIcon = (
+    <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    >
+        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+        <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+        <path d="M10 13H8" />
+        <path d="M16 17H8" />
+        <path d="M16 13h-2" />
+    </svg>
+);
+
+const CheckIcon = (
+    <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    >
+        <path d="M20 6 9 17l-5-5" />
+    </svg>
+);
+
+// ── Multi-select checkbox item ──────────────────────────────────────────────
+
+function CheckboxItem({
+    checked,
+    onChange,
+    label,
+}: {
+    checked: boolean;
+    onChange: (checked: boolean) => void;
+    label: string;
+}) {
+    return (
+        <button
+            type="button"
+            onClick={() => onChange(!checked)}
+            className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${checked
+                ? "border-foreground bg-foreground text-background"
+                : "border-border bg-white text-foreground hover:bg-neutral-50"
+                }`}
+        >
+            <span
+                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[3px] border transition-colors ${checked
+                    ? "border-background bg-background"
+                    : "border-neutral-300"
+                    }`}
+            >
+                {checked ? (
+                    <span className="text-foreground">{CheckIcon}</span>
+                ) : null}
+            </span>
+            {label}
+        </button>
+    );
+}
 
 // ── Gallery chapter card (full blurURL background, overlaid info) ────────────
 
@@ -265,12 +345,19 @@ export default function BookDetailPage() {
     const params = useParams();
     const bookId = Number(params.id);
     const queryClient = useQueryClient();
+    const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // -- state
     const [chapterNumber, setChapterNumber] = useState("");
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [confirmChapter, setConfirmChapter] = useState<Chapter | null>(null);
+
+    // -- script generation shortcut state
+    const [scriptModalOpen, setScriptModalOpen] = useState(false);
+    const [scriptName, setScriptName] = useState("");
+    const [selectedChapters, setSelectedChapters] = useState<number[]>([]);
+    const [selectedPrevScripts, setSelectedPrevScripts] = useState<number[]>([]);
 
     // -- stable callbacks (rerender-functional-setstate)
     const handleOpenChange = useCallback(
@@ -304,6 +391,14 @@ export default function BookDetailPage() {
     });
 
     const chapters = chaptersData?.data?.chapters ?? [];
+
+    // -- fetch scripts (for "previous scripts" in generate modal)
+    const { data: scriptsData } = useQuery({
+        queryKey: ["scripts", bookId],
+        queryFn: () => fetchScripts(bookId),
+        enabled: scriptModalOpen && !isNaN(bookId) && bookId > 0,
+    });
+    const scripts: Script[] = scriptsData?.data?.scripts ?? [];
 
     // -- mutations (delete stays local; uploads are global via context)
     const deleteMutation = useMutation({
@@ -347,12 +442,144 @@ export default function BookDetailPage() {
         }
     }, [confirmChapter, deleteMutation]);
 
+    // -- script generation handlers
+    const toggleChapter = useCallback((chapterNum: number) => {
+        setSelectedChapters((prev) =>
+            prev.includes(chapterNum)
+                ? prev.filter((n) => n !== chapterNum)
+                : [...prev, chapterNum]
+        );
+    }, []);
+
+    const togglePrevScript = useCallback((scriptId: number) => {
+        setSelectedPrevScripts((prev) =>
+            prev.includes(scriptId)
+                ? prev.filter((id) => id !== scriptId)
+                : [...prev, scriptId]
+        );
+    }, []);
+
+    const handleGenerateScript = useCallback(
+        (e: React.FormEvent) => {
+            e.preventDefault();
+            if (!scriptName.trim() || selectedChapters.length === 0) return;
+            const name = scriptName.trim();
+            // Fire-and-forget — events tracker polls for status
+            toast.info(`Generating "${name}"…`, { duration: 3000 });
+            generateScript({
+                bookId,
+                name,
+                chapters: selectedChapters,
+                previousScripts: selectedPrevScripts.length > 0 ? selectedPrevScripts : undefined,
+            }).catch((err) => {
+                toast.error(
+                    err instanceof ApiError
+                        ? err.isValidationError
+                            ? err.validationErrors.map((v) => v.message).join(", ")
+                            : err.businessError
+                        : "Generation failed — please retry"
+                );
+            });
+            setScriptModalOpen(false);
+            setScriptName("");
+            setSelectedChapters([]);
+            setSelectedPrevScripts([]);
+            // Navigate to scripts page so user can see result when ready
+            router.push(`/books/${bookId}/scripts`);
+        },
+        [scriptName, selectedChapters, selectedPrevScripts, bookId, router]
+    );
+
     // -- derived state
     const isSubmitDisabled = !chapterNumber.trim() || !selectedFile;
+    const isGenerateDisabled = !scriptName.trim() || selectedChapters.length === 0;
 
     const bookTitle = book?.title ?? `Book #${bookId}`;
 
     return (
+        <>
+            {/* ── Generate Script Modal ── */}
+            <Dialog open={scriptModalOpen} onOpenChange={setScriptModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Generate New Script</DialogTitle>
+                        <DialogDescription>
+                            Select chapters and optionally reference previous scripts for
+                            continuity.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <form onSubmit={handleGenerateScript} className="space-y-5">
+                        {/* Script name */}
+                        <div>
+                            <label
+                                htmlFor="script-name"
+                                className="mb-1.5 block text-xs font-medium uppercase tracking-widest text-muted-foreground"
+                            >
+                                Script Name
+                            </label>
+                            <Input
+                                id="script-name"
+                                placeholder="e.g. Chapter 1"
+                                value={scriptName}
+                                onChange={(e) => setScriptName(e.target.value)}
+                            />
+                        </div>
+
+                        {/* Chapter selection */}
+                        <div>
+                            <label className="mb-1.5 block text-xs font-medium uppercase tracking-widest text-muted-foreground">
+                                Chapters
+                            </label>
+                            {chapters.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">
+                                    No chapters available. Upload chapters first.
+                                </p>
+                            ) : (
+                                <div className="flex flex-wrap gap-2">
+                                    {chapters.map((ch) => (
+                                        <CheckboxItem
+                                            key={ch.id}
+                                            checked={selectedChapters.includes(ch.number)}
+                                            onChange={() => toggleChapter(ch.number)}
+                                            label={`Ch. ${ch.number}`}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Previous scripts (optional) */}
+                        {scripts.length > 0 ? (
+                            <div>
+                                <label className="mb-1.5 block text-xs font-medium uppercase tracking-widest text-muted-foreground">
+                                    Previous Scripts (optional)
+                                </label>
+                                <div className="flex flex-wrap gap-2">
+                                    {scripts.map((s) => (
+                                        <CheckboxItem
+                                            key={s.id}
+                                            checked={selectedPrevScripts.includes(s.id)}
+                                            onChange={() => togglePrevScript(s.id)}
+                                            label={s.name}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        ) : null}
+
+                        <DialogFooter>
+                            <Button
+                                type="submit"
+                                disabled={isGenerateDisabled}
+                            >
+                                Generate Script
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
         <div className="mx-auto max-w-5xl px-6 pb-20 max-sm:px-4">
             {/* ── Delete confirmation ─────────────────────────────────── */}
             <AlertDialog
@@ -492,6 +719,15 @@ export default function BookDetailPage() {
                             </span>
                         ) : null}
                     </h2>
+                    {chapters.length > 0 ? (
+                        <Button
+                            onClick={() => setScriptModalOpen(true)}
+                            className="gap-1.5"
+                        >
+                            {ScriptIcon}
+                            Create Script
+                        </Button>
+                    ) : null}
                 </div>
 
                 <ChaptersListContent
@@ -504,5 +740,6 @@ export default function BookDetailPage() {
                 />
             </section>
         </div>
+        </>
     );
 }

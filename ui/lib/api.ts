@@ -277,8 +277,11 @@ export interface Split {
   id: number;
   scriptId: number;
   content: string;
+  previousContent: string | null;
   panelId: number;
   effect: string;
+  audioURL: string | null;
+  videoURL: string | null;
   panel: SplitPanel;
 }
 
@@ -304,6 +307,53 @@ export function generateSplits(
 export function deleteSplits(scriptId: number): Promise<MutationResponse> {
   return apiFetch<MutationResponse>(`/api/v1/script/split/${scriptId}`, {
     method: "DELETE",
+  });
+}
+
+// ---- Audio API calls ------------------------------------------------------
+
+export interface QueuedResponse {
+  message: string;
+  data: { message: string };
+}
+
+export function generateAllAudios(body: {
+  scriptId: number;
+  voice: string;
+  voiceStyle?: string;
+}): Promise<QueuedResponse> {
+  return apiFetch<QueuedResponse>("/api/v1/script/audio", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function generateSplitAudio(body: {
+  splitId: number;
+  voice: string;
+  voiceStyle?: string;
+}): Promise<QueuedResponse> {
+  return apiFetch<QueuedResponse>("/api/v1/script/audio/split", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+// ---- Video API calls ------------------------------------------------------
+
+export function generateAllVideos(
+  scriptId: number
+): Promise<QueuedResponse> {
+  return apiFetch<QueuedResponse>(`/api/v1/script/video/${scriptId}`, {
+    method: "POST",
+  });
+}
+
+export function generateSplitVideo(
+  splitId: number
+): Promise<QueuedResponse> {
+  return apiFetch<QueuedResponse>(`/api/v1/script/video/split/${splitId}`, {
+    method: "POST",
   });
 }
 

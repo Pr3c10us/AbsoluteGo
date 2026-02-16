@@ -42,8 +42,8 @@ type Queries struct {
 func NewScriptServices(script script.Interface, book book.Interface, ai ai.Interface, eventImplementation event.Interface, queueImplementation queue.Interface, storageImplementation storage.Interface, environmentVariables *configs.EnvironmentVariables) Services {
 	return Services{
 		Commands: Commands{
-			DeleteScript:   commands.NewDeleteScript(script),
-			DeleteSplits:   commands.NewDeleteSplits(script),
+			DeleteScript:   commands.NewDeleteScript(script, storageImplementation),
+			DeleteSplits:   commands.NewDeleteSplits(script, storageImplementation),
 			GenerateScript: commands.NewGenerateScript(script, book, ai),
 			CreateScript:   commands.NewCreateScript(eventImplementation, book, queueImplementation, script),
 			CreateSplits:   commands.NewCreateSplits(eventImplementation, book, queueImplementation, script),
