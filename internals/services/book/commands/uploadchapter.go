@@ -9,6 +9,7 @@ import (
 	"github.com/Pr3c10us/absolutego/internals/domains/queue"
 	"github.com/Pr3c10us/absolutego/internals/domains/script"
 	"github.com/Pr3c10us/absolutego/internals/domains/storage"
+	"github.com/Pr3c10us/absolutego/internals/domains/vab"
 	"github.com/Pr3c10us/absolutego/packages/appError"
 	"github.com/Pr3c10us/absolutego/packages/configs"
 	"os"
@@ -91,6 +92,6 @@ func (s *UploadChapter) Handle(p UploadChapterParameter) error {
 	return nil
 }
 
-func NewUploadChapter(b book.Interface, st storage.Interface, env *configs.EnvironmentVariables, e event.Interface, q queue.Interface, scriptImplementation script.Interface) *UploadChapter {
-	return &UploadChapter{b, st, env, e, q, NewDeleteChapter(b, st, scriptImplementation)}
+func NewUploadChapter(b book.Interface, st storage.Interface, env *configs.EnvironmentVariables, e event.Interface, q queue.Interface, scriptImplementation script.Interface, vabImplementation vab.Interface) *UploadChapter {
+	return &UploadChapter{b, st, env, e, q, NewDeleteChapter(b, st, scriptImplementation, vabImplementation)}
 }

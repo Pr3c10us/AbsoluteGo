@@ -3,6 +3,7 @@ package commands
 import (
 	"errors"
 	"github.com/Pr3c10us/absolutego/internals/domains/script"
+	"github.com/Pr3c10us/absolutego/internals/domains/vab"
 	scriptService "github.com/Pr3c10us/absolutego/internals/services/script/commands"
 
 	"github.com/Pr3c10us/absolutego/internals/domains/book"
@@ -87,11 +88,11 @@ func (s *DeleteChapter) Handle(chapterId int64) error {
 	return nil
 }
 
-func NewDeleteChapter(bookImplementation book.Interface, storageImplementation storage.Interface, scriptImplementation script.Interface) *DeleteChapter {
+func NewDeleteChapter(bookImplementation book.Interface, storageImplementation storage.Interface, scriptImplementation script.Interface, vabImplementation vab.Interface) *DeleteChapter {
 	return &DeleteChapter{
 		bookImplementation:    bookImplementation,
 		storageImplementation: storageImplementation,
 		scriptImplementation:  scriptImplementation,
-		deleteScript:          scriptService.NewDeleteScript(scriptImplementation, storageImplementation),
+		deleteScript:          scriptService.NewDeleteScript(scriptImplementation, storageImplementation, vabImplementation),
 	}
 }

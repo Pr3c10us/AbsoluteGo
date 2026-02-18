@@ -66,7 +66,7 @@ func (h *Handler) DeleteVAB(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.DeleteVAB.Handle(uri.Id); err != nil {
+	if err := h.service.DeleteVAB.Handle(uri.Id, 0); err != nil {
 		_ = c.Error(err)
 		return
 	}

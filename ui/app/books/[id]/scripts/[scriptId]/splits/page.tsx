@@ -20,6 +20,7 @@ import {
     Play,
     MoreVertical,
     AlertTriangle,
+    Film,
 } from "lucide-react";
 import {
     fetchBooks,
@@ -31,6 +32,7 @@ import {
     generateAllVideos,
     generateSplitAudio,
     generateSplitVideo,
+    createVAB,
     ApiError,
     type Book,
     type Script,
@@ -126,6 +128,8 @@ const PlayIcon = <Play className="h-3.5 w-3.5" />;
 const MoreVerticalIcon = <MoreVertical className="h-4 w-4" />;
 
 const AlertTriangleIcon = <AlertTriangle className="h-4 w-4" />;
+
+const FilmIcon = <Film className="h-4 w-4" />;
 
 // ── Effect label mapping ────────────────────────────────────────────────────
 
@@ -287,6 +291,96 @@ const VoiceDialog = memo(function VoiceDialog({
                     <Button onClick={handleSubmit} className="gap-1.5">
                         {AudioIcon}
                         Generate
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+});
+
+// ── VAB name dialog ─────────────────────────────────────────────────────────
+
+const VabNameDialog = memo(function VabNameDialog({
+    open,
+    onOpenChange,
+    onSubmit,
+    hasVideoWarning,
+    missingCount,
+    totalCount,
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    onSubmit: (name: string) => void;
+    hasVideoWarning: boolean;
+    missingCount: number;
+    totalCount: number;
+}) {
+    const [name, setName] = useState("");
+
+    const handleSubmit = useCallback(() => {
+        const trimmed = name.trim();
+        if (!trimmed) {
+            toast.error("Enter a name for the video audiobook");
+            return;
+        }
+        onSubmit(trimmed);
+        onOpenChange(false);
+        setName("");
+    }, [name, onSubmit, onOpenChange]);
+
+    const handleKeyDown = useCallback(
+        (e: React.KeyboardEvent) => {
+            if (e.key === "Enter") handleSubmit();
+        },
+        [handleSubmit],
+    );
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        {FilmIcon}
+                        Create Video Audiobook
+                    </DialogTitle>
+                    <DialogDescription>
+                        All split videos will be merged into a single video audiobook.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col gap-3 py-2">
+                    {hasVideoWarning ? (
+                        <div className="flex items-start gap-2 rounded-[4px_6px_5px_3px] border border-neutral-200 bg-neutral-50 px-3 py-2.5">
+                            {AlertTriangleIcon}
+                            <p className="text-xs font-medium text-foreground">
+                                {missingCount} of {totalCount} splits are missing
+                                videos. Only splits with videos will be included
+                                in the final audiobook.
+                            </p>
+                        </div>
+                    ) : null}
+                    <div>
+                        <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                            Name
+                        </label>
+                        <Input
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            placeholder="e.g. Chapter 1 — Final Cut"
+                            autoFocus
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button
+                        variant="outline"
+                        onClick={() => onOpenChange(false)}
+                    >
+                        Cancel
+                    </Button>
+                    <Button onClick={handleSubmit} className="gap-1.5">
+                        {FilmIcon}
+                        Create
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -618,6 +712,9 @@ export default function SplitsPage() {
         label: string;
     } | null>(null);
 
+    // VAB dialog state
+    const [vabDialogOpen, setVabDialogOpen] = useState(false);
+
     // Voice dialog state
     const [voiceDialogOpen, setVoiceDialogOpen] = useState(false);
     const [voiceDialogMode, setVoiceDialogMode] = useState<
@@ -674,6 +771,14 @@ export default function SplitsPage() {
 
     // -- derived: check if any split has audio
     const hasAnyAudio = useMemo(() => splits.some((s) => s.audioURL), [splits]);
+
+    // -- derived: video coverage stats
+    const splitsWithVideo = useMemo(
+        () => splits.filter((s) => s.videoURL).length,
+        [splits],
+    );
+    const allSplitsHaveVideo = hasSplits && splitsWithVideo === splits.length;
+    const missingVideoCount = splits.length - splitsWithVideo;
 
     // -- lightbox items from splits
     const lightboxItems: LightboxItem[] = useMemo(
@@ -749,6 +854,23 @@ export default function SplitsPage() {
             );
         });
     }, [scriptId, script?.name]);
+
+    // -- fire-and-forget: create VAB
+    const handleCreateVAB = useCallback(
+        (name: string) => {
+            toast.info(`Queuing video audiobook "${name}"…`, { duration: 3000 });
+            createVAB({ scriptId, name }).catch((err) => {
+                toast.error(
+                    err instanceof ApiError
+                        ? err.isValidationError
+                            ? err.validationErrors.map((v) => v.message).join(", ")
+                            : err.businessError
+                        : "Failed to create video audiobook",
+                );
+            });
+        },
+        [scriptId],
+    );
 
     // -- fire-and-forget: generate all audios
     const handleGenerateAllAudios = useCallback(
@@ -908,6 +1030,16 @@ export default function SplitsPage() {
                 />
             ) : null}
 
+            {/* ── VAB name dialog ── */}
+            <VabNameDialog
+                open={vabDialogOpen}
+                onOpenChange={setVabDialogOpen}
+                onSubmit={handleCreateVAB}
+                hasVideoWarning={!allSplitsHaveVideo && hasSplits}
+                missingCount={missingVideoCount}
+                totalCount={splits.length}
+            />
+
             {/* ── Voice input dialog ── */}
             <VoiceDialog
                 open={voiceDialogOpen}
@@ -1021,47 +1153,60 @@ export default function SplitsPage() {
                         <div className="flex items-center gap-2">
                             {hasSplits ? (
                                 <>
-                                    {/* Primary CTA: Generate Audios */}
+                                    {/* Primary CTA: Create Video Audiobook */}
                                     <Button
-                                        onClick={() => {
-                                            setVoiceDialogMode({ type: "all" });
-                                            setVoiceDialogOpen(true);
-                                        }}
-                                        variant="outline"
+                                        onClick={() => setVabDialogOpen(true)}
+                                        disabled={splitsWithVideo === 0}
                                         className="gap-1.5"
                                     >
-                                        {AudioIcon}
+                                        {FilmIcon}
                                         <span className="max-sm:hidden">
-                                            Generate Audios
+                                            Video Audiobook
                                         </span>
-                                        <span className="sm:hidden">Audio</span>
+                                        <span className="sm:hidden">VAB</span>
+                                        {!allSplitsHaveVideo && splitsWithVideo > 0 ? (
+                                            <span className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white/20 text-[9px] font-bold text-white/80">
+                                                !
+                                            </span>
+                                        ) : null}
                                     </Button>
 
-                                    {/* Primary CTA: Generate Videos */}
-                                    <Button
-                                        onClick={() => setConfirmVideos(true)}
-                                        disabled={!hasAnyAudio}
-                                        className="gap-1.5"
-                                    >
-                                        {VideoIcon}
-                                        <span className="max-sm:hidden">
-                                            Generate Videos
-                                        </span>
-                                        <span className="sm:hidden">Video</span>
-                                    </Button>
-
-                                    {/* Overflow menu for secondary actions */}
+                                    {/* Overflow menu */}
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <Button
                                                 variant="outline"
-                                                size="icon-sm"
+                                                className="gap-1.5"
                                                 aria-label="More actions"
                                             >
+                                                Options
                                                 {ChevronDownIcon}
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
+                                            <DropdownMenuLabel>Generate</DropdownMenuLabel>
+                                            <DropdownMenuItem
+                                                onClick={() => {
+                                                    setVoiceDialogMode({ type: "all" });
+                                                    setVoiceDialogOpen(true);
+                                                }}
+                                            >
+                                                {AudioIcon}
+                                                Generate Audios
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                onClick={() => setConfirmVideos(true)}
+                                                disabled={!hasAnyAudio}
+                                            >
+                                                {VideoIcon}
+                                                Generate Videos
+                                                {!hasAnyAudio ? (
+                                                    <span className="ml-auto text-[10px] text-neutral-400">
+                                                        needs audio
+                                                    </span>
+                                                ) : null}
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
                                             {script ? (
                                                 <DropdownMenuItem
                                                     onClick={() =>
@@ -1072,6 +1217,14 @@ export default function SplitsPage() {
                                                     View Script
                                                 </DropdownMenuItem>
                                             ) : null}
+                                            <DropdownMenuItem asChild>
+                                                <Link
+                                                    href={`/books/${bookId}/videos`}
+                                                >
+                                                    {FilmIcon}
+                                                    View Videos
+                                                </Link>
+                                            </DropdownMenuItem>
                                             <DropdownMenuItem
                                                 onClick={handleGenerateSplits}
                                             >
@@ -1123,6 +1276,24 @@ export default function SplitsPage() {
 
                 {/* ── Splits List ── */}
                 <section className="border-t border-border pt-8">
+                    {/* Video coverage warning */}
+                    {hasSplits && !allSplitsHaveVideo && splitsWithVideo > 0 ? (
+                        <div className="mb-6 flex items-start gap-2.5 rounded-[4px_6px_5px_3px] border border-neutral-200 bg-neutral-50 px-4 py-3">
+                            {AlertTriangleIcon}
+                            <div className="min-w-0">
+                                <p className="text-sm font-medium text-foreground">
+                                    {missingVideoCount} split
+                                    {missingVideoCount !== 1 ? "s" : ""} missing
+                                    videos
+                                </p>
+                                <p className="mt-0.5 text-xs text-muted-foreground">
+                                    Generate videos for all splits before creating a
+                                    video audiobook for full coverage.{" "}
+                                    {splitsWithVideo} of {splits.length} ready.
+                                </p>
+                            </div>
+                        </div>
+                    ) : null}
                     <SplitsListContent
                         isLoading={isLoading}
                         fetchError={fetchError}

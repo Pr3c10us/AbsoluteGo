@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Pr3c10us/absolutego/internals/domains/script"
+	"github.com/Pr3c10us/absolutego/internals/domains/vab"
 	"github.com/Pr3c10us/absolutego/packages/appError"
 	"mime"
 	"os"
@@ -396,6 +397,6 @@ func (s *AddChapter) processPanel(panelDir string, pageId int64, tracker *upload
 	return panels, nil
 }
 
-func NewAddChapter(b book.Interface, st storage.Interface, a ai.Interface, env *configs.EnvironmentVariables, scriptImplementation script.Interface) *AddChapter {
-	return &AddChapter{b, st, a, env, NewDeleteChapter(b, st, scriptImplementation)}
+func NewAddChapter(b book.Interface, st storage.Interface, a ai.Interface, env *configs.EnvironmentVariables, scriptImplementation script.Interface, vabImplementation vab.Interface) *AddChapter {
+	return &AddChapter{b, st, a, env, NewDeleteChapter(b, st, scriptImplementation, vabImplementation)}
 }

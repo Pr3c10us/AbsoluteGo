@@ -357,6 +357,52 @@ export function generateSplitVideo(
   });
 }
 
+// ---- VAB types ------------------------------------------------------------
+
+export interface VAB {
+  Id: number;
+  Name: string;
+  Url: string | null;
+  ScriptId: number;
+  BookId: number;
+}
+
+export interface GetVABsResponse {
+  message: string;
+  data: { vabs: VAB[] | null };
+}
+
+// ---- VAB API calls --------------------------------------------------------
+
+export function fetchVABs(params?: {
+  bookId?: number;
+  scriptId?: number;
+  name?: string;
+}): Promise<GetVABsResponse> {
+  const qs = new URLSearchParams();
+  if (params?.bookId) qs.set("bookId", String(params.bookId));
+  if (params?.scriptId) qs.set("scriptId", String(params.scriptId));
+  if (params?.name) qs.set("name", params.name);
+  const query = qs.toString();
+  return apiFetch<GetVABsResponse>(`/api/v1/vab${query ? `?${query}` : ""}`);
+}
+
+export function createVAB(body: {
+  scriptId: number;
+  name: string;
+}): Promise<MutationResponse> {
+  return apiFetch<MutationResponse>("/api/v1/vab", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function deleteVAB(vabId: number): Promise<MutationResponse> {
+  return apiFetch<MutationResponse>(`/api/v1/vab/${vabId}`, {
+    method: "DELETE",
+  });
+}
+
 // ---- Event types ----------------------------------------------------------
 
 export type EventStatus =

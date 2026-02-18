@@ -7,6 +7,7 @@ import (
 	"github.com/Pr3c10us/absolutego/internals/domains/queue"
 	"github.com/Pr3c10us/absolutego/internals/domains/script"
 	"github.com/Pr3c10us/absolutego/internals/domains/storage"
+	"github.com/Pr3c10us/absolutego/internals/domains/vab"
 	"github.com/Pr3c10us/absolutego/internals/services/book/commands"
 	"github.com/Pr3c10us/absolutego/internals/services/book/queries"
 	"github.com/Pr3c10us/absolutego/packages/configs"
@@ -40,14 +41,15 @@ func NewBookServices(
 	scriptImplementation script.Interface,
 	eventImplementation event.Interface,
 	queueImplementation queue.Interface,
+	vabImplementation vab.Interface,
 ) Services {
 	return Services{
 		Commands: Commands{
-			UploadChapter: commands.NewUploadChapter(bookImplementation, storageImplementation, environmentVariables, eventImplementation, queueImplementation, scriptImplementation),
-			AddChapter:    commands.NewAddChapter(bookImplementation, storageImplementation, aiImplementation, environmentVariables, scriptImplementation),
+			UploadChapter: commands.NewUploadChapter(bookImplementation, storageImplementation, environmentVariables, eventImplementation, queueImplementation, scriptImplementation, vabImplementation),
+			AddChapter:    commands.NewAddChapter(bookImplementation, storageImplementation, aiImplementation, environmentVariables, scriptImplementation, vabImplementation),
 			AddBook:       commands.NewAddBook(bookImplementation),
-			DeleteBook:    commands.NewDeleteBook(bookImplementation, storageImplementation, scriptImplementation),
-			DeleteChapter: commands.NewDeleteChapter(bookImplementation, storageImplementation, scriptImplementation),
+			DeleteBook:    commands.NewDeleteBook(bookImplementation, storageImplementation, scriptImplementation, vabImplementation),
+			DeleteChapter: commands.NewDeleteChapter(bookImplementation, storageImplementation, scriptImplementation, vabImplementation),
 		},
 		Queries: Queries{
 			GetBooks:    queries.NewGetBooks(bookImplementation),

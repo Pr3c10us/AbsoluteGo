@@ -5,6 +5,7 @@ import (
 	"github.com/Pr3c10us/absolutego/internals/domains/book"
 	"github.com/Pr3c10us/absolutego/internals/domains/script"
 	"github.com/Pr3c10us/absolutego/internals/domains/storage"
+	"github.com/Pr3c10us/absolutego/internals/domains/vab"
 	"github.com/Pr3c10us/absolutego/packages/appError"
 )
 
@@ -40,10 +41,10 @@ func (s *DeleteBook) Handle(bookId int64) error {
 	return err
 }
 
-func NewDeleteBook(bookImplementation book.Interface, storageImplementation storage.Interface, scriptImplementation script.Interface) *DeleteBook {
+func NewDeleteBook(bookImplementation book.Interface, storageImplementation storage.Interface, scriptImplementation script.Interface, vabImplementation vab.Interface) *DeleteBook {
 	return &DeleteBook{
 		bookImplementation:    bookImplementation,
 		storageImplementation: storageImplementation,
-		deleteChapter:         NewDeleteChapter(bookImplementation, storageImplementation, scriptImplementation),
+		deleteChapter:         NewDeleteChapter(bookImplementation, storageImplementation, scriptImplementation, vabImplementation),
 	}
 }
