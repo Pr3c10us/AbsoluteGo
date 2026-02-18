@@ -1,9 +1,10 @@
 "use client";
 
-import { memo, useState, useCallback, useRef } from "react";
+import { memo, useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Trash2, ArrowLeft, Upload, BookOpen, FileText, Check } from "lucide-react";
 import {
@@ -38,6 +39,8 @@ import {
     DialogDescription,
     DialogFooter,
 } from "@/components/ui/dialog";
+
+const PAGE_LIMIT = 20;
 
 // ── Static SVG icons (hoisted — rendering-hoist-jsx) ────────────────────────
 
@@ -291,6 +294,9 @@ const ChaptersListContent = memo(function ChaptersListContent({
     bookId,
     onDelete,
     deleteDisabled,
+    sentinelRef,
+    isFetchingNextPage,
+    hasNextPage,
 }: {
     isLoading: boolean;
     fetchError: Error | null;
@@ -298,6 +304,9 @@ const ChaptersListContent = memo(function ChaptersListContent({
     bookId: number;
     onDelete: (chapter: Chapter) => void;
     deleteDisabled: boolean;
+    sentinelRef: React.RefObject<HTMLDivElement | null>;
+    isFetchingNextPage: boolean;
+    hasNextPage: boolean;
 }) {
     if (isLoading) {
         return (
@@ -326,17 +335,31 @@ const ChaptersListContent = memo(function ChaptersListContent({
             </span>
         </div>
     ) : (
-        <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            {chapters.map((chapter) => (
-                <ChapterCard
-                    key={chapter.id}
-                    chapter={chapter}
-                    bookId={bookId}
-                    onDelete={onDelete}
-                    disabled={deleteDisabled}
-                />
-            ))}
-        </ul>
+        <>
+            <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                {chapters.map((chapter) => (
+                    <ChapterCard
+                        key={chapter.id}
+                        chapter={chapter}
+                        bookId={bookId}
+                        onDelete={onDelete}
+                        disabled={deleteDisabled}
+                    />
+                ))}
+            </ul>
+            {/* Infinite scroll sentinel */}
+            <div ref={sentinelRef} className="h-1" />
+            {isFetchingNextPage ? (
+                <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-border border-t-foreground" />
+                    Loading more…
+                </div>
+            ) : !hasNextPage && chapters.length >= PAGE_LIMIT ? (
+                <p className="py-6 text-center text-xs text-muted-foreground">
+                    All chapters loaded
+                </p>
+            ) : null}
+        </>
     );
 });
 
@@ -360,6 +383,9 @@ export default function BookDetailPage() {
     const [selectedChapters, setSelectedChapters] = useState<number[]>([]);
     const [selectedPrevScripts, setSelectedPrevScripts] = useState<number[]>([]);
 
+    // -- infinite scroll sentinel
+    const sentinelRef = useRef<HTMLDivElement | null>(null);
+
     // -- stable callbacks (rerender-functional-setstate)
     const handleOpenChange = useCallback(
         (open: boolean) => { if (!open) setConfirmChapter(null); },
@@ -370,30 +396,53 @@ export default function BookDetailPage() {
         []
     );
 
-    // -- fetch book info
+    // -- fetch book info (high limit to ensure the current book is found)
     const { data: booksData } = useQuery({
-        queryKey: ["books"],
-        queryFn: () => fetchBooks(),
+        queryKey: ["books-all"],
+        queryFn: () => fetchBooks({ page: 1, limit: 500 }),
     });
 
-    const book: Book | undefined = booksData?.data?.books?.find(
-        (b) => b.id === bookId
-    );
+    const book: Book | undefined = booksData?.data?.books?.find((b) => b.id === bookId);
 
-    // -- fetch chapters
+    // -- fetch chapters (infinite scroll)
     const {
         data: chaptersData,
         isLoading,
         error: fetchError,
-    } = useQuery({
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+    } = useInfiniteQuery({
         queryKey: ["chapters", bookId],
-        queryFn: () => fetchChapters(bookId),
+        queryFn: ({ pageParam }) =>
+            fetchChapters(bookId, { page: pageParam, limit: PAGE_LIMIT }),
+        initialPageParam: 1,
+        getNextPageParam: (lastPage, allPages) => {
+            const fetched = lastPage.data?.chapters?.length ?? 0;
+            return fetched < PAGE_LIMIT ? undefined : allPages.length + 1;
+        },
         enabled: !isNaN(bookId) && bookId > 0,
     });
 
-    const chapters = chaptersData?.data?.chapters ?? [];
+    const chapters = chaptersData?.pages.flatMap((p) => p.data?.chapters ?? []) ?? [];
 
-    // -- fetch scripts (for "previous scripts" in generate modal)
+    // -- intersection observer for sentinel
+    useEffect(() => {
+        const el = sentinelRef.current;
+        if (!el) return;
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+                    fetchNextPage();
+                }
+            },
+            { rootMargin: "200px" }
+        );
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+    // -- fetch scripts (for "previous scripts" in generate modal — no pagination needed for modal)
     const { data: scriptsData } = useQuery({
         queryKey: ["scripts", bookId],
         queryFn: () => fetchScripts(bookId),
@@ -738,6 +787,9 @@ export default function BookDetailPage() {
                     bookId={bookId}
                     onDelete={handleDeleteClick}
                     deleteDisabled={deleteMutation.isPending}
+                    sentinelRef={sentinelRef}
+                    isFetchingNextPage={isFetchingNextPage}
+                    hasNextPage={hasNextPage}
                 />
             </section>
         </div>

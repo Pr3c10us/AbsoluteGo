@@ -90,9 +90,17 @@ export async function apiFetch<T>(
 
 // ---- Book API calls -------------------------------------------------------
 
-export function fetchBooks(title?: string): Promise<GetBooksResponse> {
-  const query = title ? `?title=${encodeURIComponent(title)}` : "";
-  return apiFetch<GetBooksResponse>(`/api/v1/book${query}`);
+export function fetchBooks(params?: {
+  title?: string;
+  page?: number;
+  limit?: number;
+}): Promise<GetBooksResponse> {
+  const qs = new URLSearchParams();
+  if (params?.title) qs.set("title", params.title);
+  if (params?.page) qs.set("page", String(params.page));
+  if (params?.limit) qs.set("limit", String(params.limit));
+  const query = qs.toString();
+  return apiFetch<GetBooksResponse>(`/api/v1/book${query ? `?${query}` : ""}`);
 }
 
 export function addBook(title: string): Promise<MutationResponse> {
@@ -126,10 +134,12 @@ export interface GetChaptersResponse {
 
 export function fetchChapters(
   bookId: number,
-  number?: number
+  opts?: { number?: number; page?: number; limit?: number }
 ): Promise<GetChaptersResponse> {
   const params = new URLSearchParams({ bookId: String(bookId) });
-  if (number !== undefined) params.set("number", String(number));
+  if (opts?.number !== undefined) params.set("number", String(opts.number));
+  if (opts?.page) params.set("page", String(opts.page));
+  if (opts?.limit) params.set("limit", String(opts.limit));
   return apiFetch<GetChaptersResponse>(
     `/api/v1/book/chapter?${params.toString()}`
   );
@@ -235,13 +245,15 @@ export interface GenerateScriptResponse {
 
 export function fetchScripts(
   bookId: number,
-  opts?: { name?: string; ids?: number[] }
+  opts?: { name?: string; ids?: number[]; page?: number; limit?: number }
 ): Promise<GetScriptsResponse> {
   const params = new URLSearchParams({ bookId: String(bookId) });
   if (opts?.name) params.set("name", opts.name);
   if (opts?.ids) {
     for (const id of opts.ids) params.append("id", String(id));
   }
+  if (opts?.page) params.set("page", String(opts.page));
+  if (opts?.limit) params.set("limit", String(opts.limit));
   return apiFetch<GetScriptsResponse>(`/api/v1/script?${params.toString()}`);
 }
 
@@ -378,11 +390,15 @@ export function fetchVABs(params?: {
   bookId?: number;
   scriptId?: number;
   name?: string;
+  page?: number;
+  limit?: number;
 }): Promise<GetVABsResponse> {
   const qs = new URLSearchParams();
   if (params?.bookId) qs.set("bookId", String(params.bookId));
   if (params?.scriptId) qs.set("scriptId", String(params.scriptId));
   if (params?.name) qs.set("name", params.name);
+  if (params?.page) qs.set("page", String(params.page));
+  if (params?.limit) qs.set("limit", String(params.limit));
   const query = qs.toString();
   return apiFetch<GetVABsResponse>(`/api/v1/vab${query ? `?${query}` : ""}`);
 }

@@ -89,6 +89,22 @@ func (i *implementation) GetScripts(query script.Query) ([]script.Script, error)
 		))
 	}
 
+	fetchAll := query.Limit == 0 && query.Page == 0
+
+	if !fetchAll {
+		if query.Limit <= 0 {
+			query.Limit = 20
+		}
+		if query.Page <= 0 {
+			query.Page = 1
+		}
+
+		q = q.Limit(uint64(query.Limit))
+		if offset := (query.Page - 1) * query.Limit; offset > 0 {
+			q = q.Offset(uint64(offset))
+		}
+	}
+
 	rows, err := q.RunWith(i.db).Query()
 	if err != nil {
 		return nil, err

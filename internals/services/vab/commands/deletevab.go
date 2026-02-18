@@ -32,7 +32,7 @@ func (service *DeleteVAB) Handle(vabId, scriptId int64) error {
 			return err
 		}
 	} else if scriptId != 0 {
-		vabs, err := service.vabImplementation.GetVABs("", scriptId, 0)
+		vabs, err := service.vabImplementation.GetVABs("", scriptId, 0, 0, 0)
 		if err != nil {
 			return err
 		}

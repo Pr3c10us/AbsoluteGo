@@ -6,8 +6,8 @@ type GetBooks struct {
 	bookImplementation book.Interface
 }
 
-func (service *GetBooks) Handle(title string) ([]book.Book, error) {
-	return service.bookImplementation.GetBooks(title)
+func (service *GetBooks) Handle(title string, page, limit int) ([]book.Book, error) {
+	return service.bookImplementation.GetBooks(title, page, limit)
 }
 
 func NewGetBooks(bookImplementation book.Interface) *GetBooks {

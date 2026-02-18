@@ -34,7 +34,7 @@ func (s *GenerateSplits) Handle(scriptId int64) error {
 		return appError.BadRequest(errors.New("book does not exist"))
 	}
 
-	fetchedChapters, err := s.book.GetChapters(b.Id, scr.Chapters)
+	fetchedChapters, err := s.book.GetChapters(b.Id, scr.Chapters, 0, 0)
 	if err != nil {
 		return err
 	}

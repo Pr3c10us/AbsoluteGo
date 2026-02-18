@@ -70,7 +70,7 @@ func (s *AddChapter) Handle(p AddChapterParameter) (int64, error) {
 		return 0, appError.BadRequest(errors.New("book does not exist"))
 	}
 
-	chapters, _ := s.book.GetChapters(b.Id, []int{p.Chapter})
+	chapters, _ := s.book.GetChapters(b.Id, []int{p.Chapter}, 0, 0)
 	for _, ch := range chapters {
 		if err = s.deleteChapter.Handle(ch.Id); err != nil {
 			return 0, err

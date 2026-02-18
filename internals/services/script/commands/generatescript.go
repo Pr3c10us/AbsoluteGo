@@ -41,7 +41,7 @@ func (s *GenerateScript) Handle(parameters GenerateScriptParameters) (string, in
 		return "", 0, appError.BadRequest(errors.New("book does not exist"))
 	}
 
-	fetchedChapters, err := s.book.GetChapters(b.Id, parameters.Chapters)
+	fetchedChapters, err := s.book.GetChapters(b.Id, parameters.Chapters, 0, 0)
 	if err != nil {
 		return "", 0, err
 	}

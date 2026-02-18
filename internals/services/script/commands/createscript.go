@@ -35,7 +35,7 @@ func (s *CreateScript) Handle(parameters CreateScriptParameters) error {
 		return appError.BadRequest(errors.New("book does not exist"))
 	}
 
-	fetchedChapters, err := s.bookImplementation.GetChapters(b.Id, parameters.Chapters)
+	fetchedChapters, err := s.bookImplementation.GetChapters(b.Id, parameters.Chapters, 0, 0)
 	if err != nil {
 		return err
 	}

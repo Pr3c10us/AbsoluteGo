@@ -62,18 +62,20 @@ func (i *implementation) GetVABs(name string, scriptId, bookId int64, page, limi
 		q = q.Where(sq.Eq{"book_id": bookId})
 	}
 
-	if limit <= 0 {
-		limit = 20
-	}
+	fetchAll := limit == 0 && page == 0
 
-	if page <= 0 {
-		page = 1
-	}
+	if !fetchAll {
+		if limit <= 0 {
+			limit = 20
+		}
+		if page <= 0 {
+			page = 1
+		}
 
-	q = q.Limit(uint64(limit))
-	offset := (page - 1) * limit
-	if offset > 0 {
-		q = q.Offset(uint64(offset))
+		q = q.Limit(uint64(limit))
+		if offset := (page - 1) * limit; offset > 0 {
+			q = q.Offset(uint64(offset))
+		}
 	}
 
 	rows, err := q.RunWith(i.db).Query()

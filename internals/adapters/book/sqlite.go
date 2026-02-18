@@ -53,10 +53,23 @@ func (i *implementation) DeleteBook(id int64) error {
 	return assertRowAffected(res)
 }
 
-func (i *implementation) GetBooks(title string) ([]book.Book, error) {
+func (i *implementation) GetBooks(title string, page, limit int) ([]book.Book, error) {
 	q := sq.Select("id", "title").From("books")
 	if title != "" {
 		q = q.Where(sq.Like{"title": fmt.Sprintf("%%%s%%", title)})
+	}
+	if limit <= 0 {
+		limit = 20
+	}
+
+	if page <= 0 {
+		page = 1
+	}
+
+	q = q.Limit(uint64(limit))
+	offset := (page - 1) * limit
+	if offset > 0 {
+		q = q.Offset(uint64(offset))
 	}
 
 	rows, err := q.RunWith(i.db).Query()
@@ -139,13 +152,30 @@ func (i *implementation) DeleteChapter(id int64) error {
 	return assertRowAffected(res)
 }
 
-func (i *implementation) GetChapters(bookId int64, numbers []int) ([]book.Chapter, error) {
+func (i *implementation) GetChapters(bookId int64, numbers []int, page, limit int) ([]book.Chapter, error) {
 	q := sq.Select("id", "number", "book_id", "blur_url").
 		From("chapters").
 		Where(sq.Eq{"book_id": bookId}).
 		OrderBy("number ASC")
+
 	if len(numbers) > 0 {
 		q = q.Where(sq.Eq{"number": numbers})
+	}
+
+	fetchAll := limit == 0 && page == 0
+
+	if !fetchAll {
+		if limit <= 0 {
+			limit = 20
+		}
+		if page <= 0 {
+			page = 1
+		}
+
+		q = q.Limit(uint64(limit))
+		if offset := (page - 1) * limit; offset > 0 {
+			q = q.Offset(uint64(offset))
+		}
 	}
 
 	rows, err := q.RunWith(i.db).Query()

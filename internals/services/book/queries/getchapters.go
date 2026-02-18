@@ -6,8 +6,11 @@ type GetChapters struct {
 	bookImplementation book.Interface
 }
 
-func (service *GetChapters) Handle(bookId int64, number []int) ([]book.Chapter, error) {
-	return service.bookImplementation.GetChapters(bookId, number)
+func (service *GetChapters) Handle(bookId int64, number []int, page, limit int) ([]book.Chapter, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	return service.bookImplementation.GetChapters(bookId, number, page, limit)
 }
 
 func NewGetChapters(bookImplementation book.Interface) *GetChapters {

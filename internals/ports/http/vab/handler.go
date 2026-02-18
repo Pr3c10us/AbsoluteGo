@@ -42,6 +42,8 @@ func (h *Handler) GetVABs(c *gin.Context) {
 		Name     string `form:"name" binding:"omitempty,min=1,max=255"`
 		ScriptId int64  `form:"scriptId" binding:"omitempty,min=1"`
 		BookId   int64  `form:"bookId" binding:"omitempty,min=1"`
+		Page     int    `form:"page" binding:"omitempty,min=1"`
+		Limit    int    `form:"limit" binding:"omitempty,min=1,max=100"`
 	}
 	if err := c.ShouldBindQuery(&req); err != nil {
 		_ = c.Error(validator.ValidateRequest(err))
@@ -49,7 +51,7 @@ func (h *Handler) GetVABs(c *gin.Context) {
 	}
 	var vabs []vab2.VAB
 	var err error
-	if vabs, err = h.service.GetVABs.Handle(req.ScriptId, req.BookId, req.Name); err != nil {
+	if vabs, err = h.service.GetVABs.Handle(req.ScriptId, req.BookId, req.Name, req.Page, req.Limit); err != nil {
 		_ = c.Error(err)
 		return
 	}

@@ -3,7 +3,8 @@
 import { memo, useState, useCallback, useMemo, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowLeft, Film, Play, Trash2, AlertTriangle, Search, X, Download } from "lucide-react";
 import {
@@ -28,6 +29,8 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import VideoPlayerOverlayWrapper from "@/components/videoPlayerOverlay";
+
+const PAGE_LIMIT = 20;
 
 // ── Static icons ─────────────────────────────────────────────────────────────
 
@@ -212,6 +215,9 @@ const VABsGrid = memo(function VABsGrid({
     onDelete,
     deleteDisabled,
     searchActive,
+    sentinelRef,
+    isFetchingNextPage,
+    hasNextPage,
 }: {
     isLoading: boolean;
     fetchError: Error | null;
@@ -222,6 +228,9 @@ const VABsGrid = memo(function VABsGrid({
     onDelete: (vab: VAB) => void;
     deleteDisabled: boolean;
     searchActive: boolean;
+    sentinelRef: React.RefObject<HTMLDivElement | null>;
+    isFetchingNextPage: boolean;
+    hasNextPage: boolean;
 }) {
     if (isLoading) {
         return (
@@ -273,24 +282,38 @@ const VABsGrid = memo(function VABsGrid({
     }
 
     return (
-        <ul className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2">
-            {vabs.map((vab) => {
-                const scriptName = scripts.find(
-                    (s) => s.id === vab.ScriptId,
-                )?.name;
-                return (
-                    <VABThumbnailCard
-                        key={vab.Id}
-                        vab={vab}
-                        scriptName={scriptName}
-                        bookId={bookId}
-                        onPlay={onPlay}
-                        onDelete={onDelete}
-                        deleteDisabled={deleteDisabled}
-                    />
-                );
-            })}
-        </ul>
+        <>
+            <ul className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2">
+                {vabs.map((vab) => {
+                    const scriptName = scripts.find(
+                        (s) => s.id === vab.ScriptId,
+                    )?.name;
+                    return (
+                        <VABThumbnailCard
+                            key={vab.Id}
+                            vab={vab}
+                            scriptName={scriptName}
+                            bookId={bookId}
+                            onPlay={onPlay}
+                            onDelete={onDelete}
+                            deleteDisabled={deleteDisabled}
+                        />
+                    );
+                })}
+            </ul>
+            {/* Infinite scroll sentinel */}
+            <div ref={sentinelRef} className="h-1" />
+            {isFetchingNextPage ? (
+                <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-border border-t-foreground" />
+                    Loading more…
+                </div>
+            ) : !hasNextPage && vabs.length >= PAGE_LIMIT ? (
+                <p className="py-6 text-center text-xs text-muted-foreground">
+                    All audiobooks loaded
+                </p>
+            ) : null}
+        </>
     );
 });
 
@@ -311,6 +334,9 @@ export default function BookVideosPage() {
     const [search, setSearch] = useState("");
     const debouncedSearch = useDebounce(search, 350);
 
+    // -- infinite scroll sentinel
+    const sentinelRef = useRef<HTMLDivElement | null>(null);
+
     const handleConfirmOpenChange = useCallback((open: boolean) => {
         if (!open) setConfirmVAB(null);
     }, []);
@@ -322,16 +348,18 @@ export default function BookVideosPage() {
         setVideoPlayerState({ url: vab.Url, label: vab.Name });
     }, []);
 
+    // -- fetch book info (high limit to ensure the current book is found)
     const { data: booksData } = useQuery({
-        queryKey: ["books"],
-        queryFn: () => fetchBooks(),
+        queryKey: ["books-all"],
+        queryFn: () => fetchBooks({ page: 1, limit: 500 }),
     });
     const book: Book | undefined = booksData?.data?.books?.find(
         (b) => b.id === bookId,
     );
 
+    // -- fetch scripts (no pagination — used for name lookup only)
     const { data: scriptsData } = useQuery({
-        queryKey: ["scripts", bookId],
+        queryKey: ["scripts-all", bookId],
         queryFn: () => fetchScripts(bookId),
         enabled: !isNaN(bookId) && bookId > 0,
     });
@@ -340,25 +368,51 @@ export default function BookVideosPage() {
         [scriptsData],
     );
 
-    // VABs — queryKey includes debouncedSearch so React Query re-fetches when it changes
+    // -- VABs — infinite scroll; queryKey includes debouncedSearch so React Query re-fetches when it changes
     const {
         data: vabsData,
         isLoading,
         isFetching,
         error: fetchError,
-    } = useQuery({
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+    } = useInfiniteQuery({
         queryKey: ["vabs", bookId, debouncedSearch],
-        queryFn: () =>
+        queryFn: ({ pageParam }) =>
             fetchVABs({
                 bookId,
                 name: debouncedSearch.trim() || undefined,
+                page: pageParam,
+                limit: PAGE_LIMIT,
             }),
+        initialPageParam: 1,
+        getNextPageParam: (lastPage, allPages) => {
+            const fetched = lastPage.data?.vabs?.length ?? 0;
+            return fetched < PAGE_LIMIT ? undefined : allPages.length + 1;
+        },
         enabled: !isNaN(bookId) && bookId > 0,
     });
     const vabs: VAB[] = useMemo(
-        () => vabsData?.data?.vabs ?? [],
+        () => vabsData?.pages.flatMap((p) => p.data?.vabs ?? []) ?? [],
         [vabsData],
     );
+
+    // -- intersection observer for sentinel
+    useEffect(() => {
+        const el = sentinelRef.current;
+        if (!el) return;
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+                    fetchNextPage();
+                }
+            },
+            { rootMargin: "200px" }
+        );
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
     const processingCount = useMemo(
         () => vabs.filter((v) => !v.Url).length,
@@ -509,6 +563,9 @@ export default function BookVideosPage() {
                         onDelete={handleDeleteClick}
                         deleteDisabled={deleteMutation.isPending}
                         searchActive={searchActive}
+                        sentinelRef={sentinelRef}
+                        isFetchingNextPage={isFetchingNextPage}
+                        hasNextPage={hasNextPage}
                     />
                 </section>
             </div>

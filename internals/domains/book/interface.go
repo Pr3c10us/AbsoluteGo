@@ -4,14 +4,14 @@ type Interface interface {
 	CreateBook(title string) (int64, error)
 	UpdateBook(id int64, title string) error
 	DeleteBook(id int64) error
-	GetBooks(title string) ([]Book, error)
+	GetBooks(title string, page, limit int) ([]Book, error)
 	GetBook(id int64) (*Book, error)
 
 	CreateChapter(bookId int64, number int, blurURL string) (int64, error)
 	UpdateChapter(id int64, number int, blurURL string) error
 	DeleteChapters(bookId int64) error
 	DeleteChapter(id int64) error
-	GetChapters(bookId int64, number []int) ([]Chapter, error)
+	GetChapters(bookId int64, number []int, page, limit int) ([]Chapter, error)
 	GetChapter(chapterId int64) (*Chapter, error)
 
 	CreatePage(page *Page) (int64, error)

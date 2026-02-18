@@ -6,8 +6,8 @@ type GetVABs struct {
 	vabImplementation vab.Interface
 }
 
-func (service *GetVABs) Handle(scriptId, bookId int64, name string) ([]vab.VAB, error) {
-	return service.vabImplementation.GetVABs(name, scriptId, bookId)
+func (service *GetVABs) Handle(scriptId, bookId int64, name string, page, limit int) ([]vab.VAB, error) {
+	return service.vabImplementation.GetVABs(name, scriptId, bookId, page, limit)
 }
 
 func NewGetVABs(vabImplementation vab.Interface) *GetVABs {

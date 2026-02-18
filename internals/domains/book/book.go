@@ -14,6 +14,13 @@ type Chapter struct {
 	BlurURL string `json:"blurURL"`
 }
 
+type ChapterFilter struct {
+	Number int   `form:"number" binding:"omitempty,min=1"`
+	BookId int64 `form:"bookId" binding:"omitempty,min=1"`
+	Page   int   `form:"page" binding:"omitempty,min=1"`
+	Limit  int   `form:"limit" binding:"omitempty,min=1,max=100"`
+}
+
 type Page struct {
 	Id         int64     `json:"id"`
 	ChapterId  int64     `json:"chapterId"`

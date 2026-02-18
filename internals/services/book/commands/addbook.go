@@ -11,7 +11,7 @@ type AddBook struct {
 }
 
 func (service *AddBook) Handle(title string) error {
-	books, err := service.bookImplementation.GetBooks(title)
+	books, err := service.bookImplementation.GetBooks(title, 1, 1)
 	if err != nil {
 		return err
 	}

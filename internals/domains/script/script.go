@@ -18,6 +18,8 @@ type Query struct {
 	Name    string
 	Ids     []int64
 	Chapter int
+	Page    int
+	Limit   int
 }
 
 type Split struct {

@@ -25,7 +25,7 @@ func (s *DeleteBook) Handle(bookId int64) error {
 		return appError.BadRequest(errors.New("book does not exist"))
 	}
 
-	chapters, err := s.bookImplementation.GetChapters(b.Id, nil)
+	chapters, err := s.bookImplementation.GetChapters(b.Id, nil, 0, 0)
 	if err != nil {
 		return err
 	}

@@ -39,7 +39,7 @@ func (service *GenerateVideo) Handle(id int64) (int64, error) {
 		return 0, appError.BadRequest(errors.New("script does not exist"))
 	}
 
-	chapters, err := service.bookImplementation.GetChapters(scr.BookId, scr.Chapters)
+	chapters, err := service.bookImplementation.GetChapters(scr.BookId, scr.Chapters, 0, 0)
 	if err != nil {
 		return 0, err
 	}

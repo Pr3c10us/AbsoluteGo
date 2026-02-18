@@ -50,6 +50,8 @@ func (h *Handler) AddBook(c *gin.Context) {
 func (h *Handler) GetBooks(c *gin.Context) {
 	var req struct {
 		Title string `form:"title" binding:"omitempty,min=1,max=255"`
+		Page  int    `form:"page" binding:"omitempty,min=1"`
+		Limit int    `form:"limit" binding:"omitempty,min=1,max=100"`
 	}
 	if err := c.ShouldBindQuery(&req); err != nil {
 		_ = c.Error(validator.ValidateRequest(err))
@@ -57,7 +59,7 @@ func (h *Handler) GetBooks(c *gin.Context) {
 	}
 	var books []book2.Book
 	var err error
-	if books, err = h.service.GetBooks.Handle(req.Title); err != nil {
+	if books, err = h.service.GetBooks.Handle(req.Title, req.Page, req.Limit); err != nil {
 		_ = c.Error(err)
 		return
 	}
@@ -124,6 +126,8 @@ func (h *Handler) GetChapters(c *gin.Context) {
 	var req struct {
 		Numbers []int `form:"number" binding:"omitempty,dive,gt=0"`
 		BookID  int64 `form:"bookId"  binding:"required,gt=0"`
+		Page    int   `form:"page" binding:"omitempty,min=1"`
+		Limit   int   `form:"limit" binding:"omitempty,min=1,max=100"`
 	}
 	if err := c.ShouldBindQuery(&req); err != nil {
 		_ = c.Error(validator.ValidateRequest(err))
@@ -132,7 +136,7 @@ func (h *Handler) GetChapters(c *gin.Context) {
 
 	var chapters []book2.Chapter
 	var err error
-	if chapters, err = h.service.GetChapters.Handle(req.BookID, req.Numbers); err != nil {
+	if chapters, err = h.service.GetChapters.Handle(req.BookID, req.Numbers, req.Page, req.Limit); err != nil {
 		_ = c.Error(err)
 		return
 	}

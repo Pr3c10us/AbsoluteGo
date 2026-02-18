@@ -1,8 +1,8 @@
 "use client";
 
-import { memo, useState, useCallback } from "react";
+import { memo, useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Trash2, BookOpen } from "lucide-react";
 import {
@@ -25,6 +25,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+const PAGE_LIMIT = 20;
 
 // ── Static icons (hoisted — rendering-hoist-jsx) ────────────────────────────
 
@@ -92,12 +94,18 @@ const ListContent = memo(function ListContent({
   books,
   onDelete,
   deleteDisabled,
+  sentinelRef,
+  isFetchingNextPage,
+  hasNextPage,
 }: {
   isLoading: boolean;
   fetchError: Error | null;
   books: Book[];
   onDelete: (book: Book) => void;
   deleteDisabled: boolean;
+  sentinelRef: React.RefObject<HTMLDivElement | null>;
+  isFetchingNextPage: boolean;
+  hasNextPage: boolean;
 }) {
   if (isLoading) {
     return (
@@ -126,16 +134,30 @@ const ListContent = memo(function ListContent({
       <span className="text-xs">Add your first book above to get started.</span>
     </div>
   ) : (
-    <ul className="flex flex-col gap-1.5">
-      {books.map((book) => (
-        <BookItem
-          key={book.id}
-          book={book}
-          onDelete={onDelete}
-          disabled={deleteDisabled}
-        />
-      ))}
-    </ul>
+    <>
+      <ul className="flex flex-col gap-1.5">
+        {books.map((book) => (
+          <BookItem
+            key={book.id}
+            book={book}
+            onDelete={onDelete}
+            disabled={deleteDisabled}
+          />
+        ))}
+      </ul>
+      {/* Infinite scroll sentinel */}
+      <div ref={sentinelRef} className="h-1" />
+      {isFetchingNextPage ? (
+        <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-border border-t-foreground" />
+          Loading more…
+        </div>
+      ) : !hasNextPage && books.length >= PAGE_LIMIT ? (
+        <p className="py-6 text-center text-xs text-muted-foreground">
+          All books loaded
+        </p>
+      ) : null}
+    </>
   );
 });
 
@@ -152,6 +174,9 @@ export default function HomePage() {
   );
   const [confirmBook, setConfirmBook] = useState<Book | null>(null);
 
+  // -- infinite scroll sentinel
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
   // -- stable callbacks (rerender-functional-setstate)
   const clearConfirm = useCallback(() => setConfirmBook(null), []);
   const handleOpenChange = useCallback(
@@ -163,17 +188,42 @@ export default function HomePage() {
     []
   );
 
-  // -- queries
+  // -- infinite query
   const {
     data,
     isLoading,
     error: fetchError,
-  } = useQuery({
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ["books", search],
-    queryFn: () => fetchBooks(search || undefined),
+    queryFn: ({ pageParam }) =>
+      fetchBooks({ title: search || undefined, page: pageParam, limit: PAGE_LIMIT }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      const fetched = lastPage.data?.books?.length ?? 0;
+      return fetched < PAGE_LIMIT ? undefined : allPages.length + 1;
+    },
   });
 
-  const books = data?.data?.books ?? [];
+  const books = data?.pages.flatMap((p) => p.data?.books ?? []) ?? [];
+
+  // -- intersection observer for sentinel
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // -- mutations
   const addMutation = useMutation({
@@ -334,6 +384,9 @@ export default function HomePage() {
           books={books}
           onDelete={handleDeleteClick}
           deleteDisabled={deleteMutation.isPending}
+          sentinelRef={sentinelRef}
+          isFetchingNextPage={isFetchingNextPage}
+          hasNextPage={hasNextPage}
         />
       </section>
     </div>

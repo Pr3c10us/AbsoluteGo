@@ -6,9 +6,9 @@ type GetScripts struct {
 	scriptImplementation script.Interface
 }
 
-func (service *GetScripts) Handle(bookId int64, name string, ids []int64) ([]script.Script, error) {
+func (service *GetScripts) Handle(bookId int64, name string, ids []int64, page, limit int) ([]script.Script, error) {
 	return service.scriptImplementation.GetScripts(script.Query{
-		bookId, name, ids, 0,
+		bookId, name, ids, 0, page, limit,
 	})
 }
 
