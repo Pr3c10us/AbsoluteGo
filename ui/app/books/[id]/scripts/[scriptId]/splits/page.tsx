@@ -21,6 +21,8 @@ import {
     MoreVertical,
     AlertTriangle,
     Film,
+    RectangleHorizontal,
+    RectangleVertical,
 } from "lucide-react";
 import {
     fetchBooks,
@@ -298,7 +300,37 @@ const VoiceDialog = memo(function VoiceDialog({
     );
 });
 
+// ── Resolution presets ────────────────────────────────────────────────────────
+
+interface ResolutionPreset {
+    label: string;
+    width: number;
+    height: number;
+    orientation: "horizontal" | "vertical";
+}
+
+const RESOLUTION_PRESETS: ResolutionPreset[] = [
+    // Horizontal
+    { label: "1920 × 1080 (Full HD)", width: 1920, height: 1080, orientation: "horizontal" },
+    { label: "2560 × 1440 (2K QHD)", width: 2560, height: 1440, orientation: "horizontal" },
+    { label: "3840 × 2160 (4K UHD)", width: 3840, height: 2160, orientation: "horizontal" },
+    { label: "1280 × 720 (HD)", width: 1280, height: 720, orientation: "horizontal" },
+    // Vertical
+    { label: "1080 × 1920 (Full HD)", width: 1080, height: 1920, orientation: "vertical" },
+    { label: "1440 × 2560 (2K QHD)", width: 1440, height: 2560, orientation: "vertical" },
+    { label: "2160 × 3840 (4K UHD)", width: 2160, height: 3840, orientation: "vertical" },
+    { label: "720 × 1280 (HD)", width: 720, height: 1280, orientation: "vertical" },
+];
+
+const HORIZONTAL_PRESETS = RESOLUTION_PRESETS.filter((p) => p.orientation === "horizontal");
+const VERTICAL_PRESETS = RESOLUTION_PRESETS.filter((p) => p.orientation === "vertical");
+
+const HorizontalIcon = <RectangleHorizontal className="h-3.5 w-3.5" />;
+const VerticalIcon = <RectangleVertical className="h-3.5 w-3.5" />;
+
 // ── Video settings dialog for width/height/FPS ──────────────────────────────
+
+const PRESET_CUSTOM = "custom";
 
 const VideoSettingsDialog = memo(function VideoSettingsDialog({
     open,
@@ -320,9 +352,28 @@ const VideoSettingsDialog = memo(function VideoSettingsDialog({
         FPS?: number;
     }) => void;
 }) {
+    const [preset, setPreset] = useState("");
     const [width, setWidth] = useState("");
     const [height, setHeight] = useState("");
     const [fps, setFps] = useState("");
+
+    const isCustom = preset === PRESET_CUSTOM;
+
+    const handlePresetChange = useCallback((value: string) => {
+        setPreset(value);
+        if (value === PRESET_CUSTOM) {
+            setWidth("");
+            setHeight("");
+            return;
+        }
+        const found = RESOLUTION_PRESETS.find(
+            (p) => `${p.width}x${p.height}` === value,
+        );
+        if (found) {
+            setWidth(String(found.width));
+            setHeight(String(found.height));
+        }
+    }, []);
 
     const handleSubmit = useCallback(() => {
         const w = width.trim() ? parseInt(width.trim(), 10) : undefined;
@@ -340,6 +391,7 @@ const VideoSettingsDialog = memo(function VideoSettingsDialog({
 
         onSubmit({ width: w, height: h, FPS: f });
         onOpenChange(false);
+        setPreset("");
         setWidth("");
         setHeight("");
         setFps("");
@@ -364,43 +416,105 @@ const VideoSettingsDialog = memo(function VideoSettingsDialog({
                     <p className="text-xs text-muted-foreground">
                         Leave blank to use defaults: 1920 × 1080 @ 30 FPS
                     </p>
-                    <div className="grid grid-cols-3 gap-3">
-                        <div>
-                            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                Width
-                            </label>
-                            <Input
-                                type="number"
-                                value={width}
-                                onChange={(e) => setWidth(e.target.value)}
-                                placeholder="1920"
-                                min={1}
-                            />
+
+                    {/* Resolution preset */}
+                    <div>
+                        <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                            Resolution
+                        </label>
+                        <Select value={preset} onValueChange={handlePresetChange}>
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Default (1920 × 1080)" />
+                            </SelectTrigger>
+                            <SelectContent
+                                position="popper"
+                                className="max-h-64"
+                            >
+                                <SelectGroup>
+                                    <SelectLabel className="flex items-center gap-1.5">
+                                        {HorizontalIcon}
+                                        Horizontal
+                                    </SelectLabel>
+                                    {HORIZONTAL_PRESETS.map((p) => (
+                                        <SelectItem
+                                            key={`${p.width}x${p.height}`}
+                                            value={`${p.width}x${p.height}`}
+                                        >
+                                            <span className="inline-flex items-center gap-1.5">
+                                                {HorizontalIcon}
+                                                {p.label}
+                                            </span>
+                                        </SelectItem>
+                                    ))}
+                                </SelectGroup>
+                                <SelectGroup>
+                                    <SelectLabel className="flex items-center gap-1.5">
+                                        {VerticalIcon}
+                                        Vertical
+                                    </SelectLabel>
+                                    {VERTICAL_PRESETS.map((p) => (
+                                        <SelectItem
+                                            key={`${p.width}x${p.height}`}
+                                            value={`${p.width}x${p.height}`}
+                                        >
+                                            <span className="inline-flex items-center gap-1.5">
+                                                {VerticalIcon}
+                                                {p.label}
+                                            </span>
+                                        </SelectItem>
+                                    ))}
+                                </SelectGroup>
+                                <SelectGroup>
+                                    <SelectItem value={PRESET_CUSTOM}>
+                                        Custom
+                                    </SelectItem>
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Custom width / height (only when "Custom" selected) */}
+                    {isCustom ? (
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                    Width
+                                </label>
+                                <Input
+                                    type="number"
+                                    value={width}
+                                    onChange={(e) => setWidth(e.target.value)}
+                                    placeholder="1920"
+                                    min={1}
+                                />
+                            </div>
+                            <div>
+                                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                    Height
+                                </label>
+                                <Input
+                                    type="number"
+                                    value={height}
+                                    onChange={(e) => setHeight(e.target.value)}
+                                    placeholder="1080"
+                                    min={1}
+                                />
+                            </div>
                         </div>
-                        <div>
-                            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                Height
-                            </label>
-                            <Input
-                                type="number"
-                                value={height}
-                                onChange={(e) => setHeight(e.target.value)}
-                                placeholder="1080"
-                                min={1}
-                            />
-                        </div>
-                        <div>
-                            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                FPS
-                            </label>
-                            <Input
-                                type="number"
-                                value={fps}
-                                onChange={(e) => setFps(e.target.value)}
-                                placeholder="30"
-                                min={1}
-                            />
-                        </div>
+                    ) : null}
+
+                    {/* FPS (always visible) */}
+                    <div>
+                        <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                            FPS
+                        </label>
+                        <Input
+                            type="number"
+                            value={fps}
+                            onChange={(e) => setFps(e.target.value)}
+                            placeholder="30"
+                            min={1}
+                        />
                     </div>
                 </div>
                 <DialogFooter>

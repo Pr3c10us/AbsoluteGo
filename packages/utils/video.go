@@ -216,6 +216,36 @@ type processedImage struct {
 	isTemp bool
 }
 
+func resizeForEffect(src image.Image, effect Effect, width, height int) *image.NRGBA {
+	switch effect {
+	case EffectPanLeft, EffectPanRight:
+		// Resize so the width matches target; height scales proportionally.
+		// Then crop/pad vertically to fit the canvas.
+		resized := imaging.Resize(src, width, 0, imaging.Lanczos)
+		if resized.Bounds().Dy() > height {
+			resized = imaging.CropCenter(resized, width, height)
+		}
+		return resized
+
+	case EffectPanUp, EffectPanDown:
+		// Resize so the height matches target; width scales proportionally.
+		// Then crop/pad horizontally to fit the canvas.
+		resized := imaging.Resize(src, 0, height, imaging.Lanczos)
+		if resized.Bounds().Dx() > width {
+			resized = imaging.CropCenter(resized, width, height)
+		}
+		return resized
+
+	case EffectZoomIn, EffectZoomOut:
+		// Fill both dimensions (cover) — no letterboxing.
+		return imaging.Fill(src, width, height, imaging.Center, imaging.Lanczos)
+
+	default:
+		// No effect — fit within bounds (existing behavior).
+		return imaging.Fit(src, width, height, imaging.Lanczos)
+	}
+}
+
 func preprocessImages(videoData []VideoData, width, height int, padColor color.Color) ([]processedImage, string, error) {
 	tempDir, err := os.MkdirTemp("", "vidgen-")
 	if err != nil {
@@ -232,8 +262,8 @@ func preprocessImages(videoData []VideoData, width, height int, padColor color.C
 			return nil, "", fmt.Errorf("failed to open image %s: %w", data.Panel, err)
 		}
 
-		// Fit the image within the target dimensions, preserving aspect ratio
-		resized := imaging.Fit(src, width, height, imaging.Lanczos)
+		// Resize based on the effect type
+		resized := resizeForEffect(src, data.Effect, width, height)
 
 		// Create a canvas of the exact target size filled with the pad color
 		canvas := imaging.New(width, height, padColor)
