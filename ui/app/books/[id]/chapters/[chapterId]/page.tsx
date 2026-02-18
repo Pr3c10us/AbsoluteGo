@@ -457,21 +457,28 @@ export default function ChapterDetailPage() {
     const closePanelLightbox = useCallback(() => setPanelLightboxIdx(null), []);
 
     // -- fetch book info
+    // NOTE: uses "books-all" key to avoid colliding with the useInfiniteQuery
+    // on the home page that uses ["books", search].
     const { data: booksData } = useQuery({
-        queryKey: ["books"],
-        queryFn: () => fetchBooks(),
+        queryKey: ["books-all"],
+        queryFn: () => fetchBooks({ page: 1, limit: 500 }),
     });
     const book: Book | undefined = booksData?.data?.books?.find(
         (b) => b.id === bookId
     );
 
     // -- fetch chapter info
+    // NOTE: uses "chapters-all" key to avoid colliding with the useInfiniteQuery
+    // on the book detail page that uses ["chapters", bookId].
     const { data: chaptersData } = useQuery({
-        queryKey: ["chapters", bookId],
+        queryKey: ["chapters-all", bookId],
         queryFn: () => fetchChapters(bookId),
         enabled: !isNaN(bookId) && bookId > 0,
     });
-    const chapter: Chapter | undefined = chaptersData?.data?.chapters?.find(
+    const chapter: Chapter | undefined = (() => {
+        const list = chaptersData?.data?.chapters;
+        return Array.isArray(list) ? list : [];
+    })().find(
         (c) => c.id === chapterId
     );
 

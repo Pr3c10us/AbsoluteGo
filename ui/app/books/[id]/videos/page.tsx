@@ -388,13 +388,17 @@ export default function BookVideosPage() {
             }),
         initialPageParam: 1,
         getNextPageParam: (lastPage, allPages) => {
-            const fetched = lastPage.data?.vabs?.length ?? 0;
+            const list = lastPage.data?.vabs;
+            const fetched = Array.isArray(list) ? list.length : 0;
             return fetched < PAGE_LIMIT ? undefined : allPages.length + 1;
         },
         enabled: !isNaN(bookId) && bookId > 0,
     });
     const vabs: VAB[] = useMemo(
-        () => vabsData?.pages.flatMap((p) => p.data?.vabs ?? []) ?? [],
+        () => vabsData?.pages.flatMap((p) => {
+            const list = p.data?.vabs;
+            return Array.isArray(list) ? list : [];
+        }) ?? [],
         [vabsData],
     );
 

@@ -202,12 +202,16 @@ export default function HomePage() {
       fetchBooks({ title: search || undefined, page: pageParam, limit: PAGE_LIMIT }),
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {
-      const fetched = lastPage.data?.books?.length ?? 0;
+      const list = lastPage.data?.books;
+      const fetched = Array.isArray(list) ? list.length : 0;
       return fetched < PAGE_LIMIT ? undefined : allPages.length + 1;
     },
   });
 
-  const books = data?.pages.flatMap((p) => p.data?.books ?? []) ?? [];
+  const books = data?.pages.flatMap((p) => {
+    const list = p.data?.books;
+    return Array.isArray(list) ? list : [];
+  }) ?? [];
 
   // -- intersection observer for sentinel
   useEffect(() => {

@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/Pr3c10us/absolutego/internals/domains/book"
@@ -18,8 +18,8 @@ type CreateVideos struct {
 	scriptImplementation script.Interface
 }
 
-func (service *CreateVideos) Handle(scriptId int64) error {
-	scr, err := service.scriptImplementation.GetScript(scriptId)
+func (service *CreateVideos) Handle(parameter GenerateVideosParameter) error {
+	scr, err := service.scriptImplementation.GetScript(parameter.ScriptId)
 	if err != nil {
 		return err
 	}
@@ -53,8 +53,11 @@ func (service *CreateVideos) Handle(scriptId int64) error {
 		return err
 	}
 
-	dataByte := make([]byte, 8)
-	binary.BigEndian.PutUint64(dataByte, uint64(scr.Id))
+	var dataByte []byte
+	dataByte, err = json.Marshal(parameter)
+	if err != nil {
+		return err
+	}
 
 	qMsg := queue.Message{
 		EventId: eventId,

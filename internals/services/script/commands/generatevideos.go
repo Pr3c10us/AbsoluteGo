@@ -15,8 +15,15 @@ type GenerateVideos struct {
 	generateVideo        *GenerateVideo
 }
 
-func (service *GenerateVideos) Handle(scriptId int64) (int64, error) {
-	scr, err := service.scriptImplementation.GetScript(scriptId)
+type GenerateVideosParameter struct {
+	ScriptId int64
+	Width    int
+	Height   int
+	FPS      int
+}
+
+func (service *GenerateVideos) Handle(parameter GenerateVideosParameter) (int64, error) {
+	scr, err := service.scriptImplementation.GetScript(parameter.ScriptId)
 	if err != nil {
 		return 0, err
 	}
@@ -42,7 +49,13 @@ func (service *GenerateVideos) Handle(scriptId int64) (int64, error) {
 
 	maxWorkers := 5
 	err = utils.RunWorkerPool(splits, maxWorkers, func(j script.Split) error {
-		_, _ = service.generateVideo.Handle(j.Id)
+		_, _ = service.generateVideo.Handle(
+			GenerateVideoParameter{
+				Id:     j.Id,
+				Width:  parameter.Width,
+				Height: parameter.Height,
+				FPS:    parameter.FPS,
+			})
 		return nil
 	})
 

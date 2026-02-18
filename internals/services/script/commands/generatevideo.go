@@ -19,8 +19,15 @@ type GenerateVideo struct {
 	scriptImplementation  script.Interface
 }
 
-func (service *GenerateVideo) Handle(id int64) (int64, error) {
-	split, err := service.scriptImplementation.GetSplit(id)
+type GenerateVideoParameter struct {
+	Id     int64
+	Width  int
+	Height int
+	FPS    int
+}
+
+func (service *GenerateVideo) Handle(parameter GenerateVideoParameter) (int64, error) {
+	split, err := service.scriptImplementation.GetSplit(parameter.Id)
 	if err != nil {
 		return 0, err
 	}
@@ -79,12 +86,21 @@ func (service *GenerateVideo) Handle(id int64) (int64, error) {
 
 	slideshowPath := filepath.Join(videoDir, "slideshow.mp4")
 
+	if parameter.Width <= 0 {
+		parameter.Width = 1920
+	}
+	if parameter.Height <= 0 {
+		parameter.Height = 1080
+	}
+	if parameter.FPS <= 0 {
+		parameter.FPS = 30
+	}
 	err = utils.CreateVideoFromImages([]utils.VideoData{
 		vidData,
 	}, slideshowPath, &utils.CreateVideoOptions{
-		FPS:             30,
-		Width:           1080,
-		Height:          1920,
+		FPS:             parameter.FPS,
+		Width:           parameter.Width,
+		Height:          parameter.Height,
 		BackgroundImage: blurImage,
 		HWAccel:         service.environmentVariable.HardwareAccelerator,
 	})

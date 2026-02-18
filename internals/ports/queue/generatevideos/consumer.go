@@ -1,13 +1,18 @@
 package generatevideos
 
 import (
-	"encoding/binary"
+	"encoding/json"
 	"github.com/Pr3c10us/absolutego/internals/domains/queueport"
+	commands2 "github.com/Pr3c10us/absolutego/internals/services/script/commands"
 )
 
 func Handler(c *queueport.Context) (*queueport.HandlerResult, error) {
-	scriptId := int64(binary.BigEndian.Uint64(c.Data))
-	scriptId, err := c.Services.ScriptServices.GenerateVideos.Handle(scriptId)
+	var data commands2.GenerateVideosParameter
+	err := json.Unmarshal(c.Data, &data)
+	if err != nil {
+		return nil, err
+	}
+	scriptId, err := c.Services.ScriptServices.GenerateVideos.Handle(data)
 	return &queueport.HandlerResult{
 		ScriptId: scriptId,
 	}, err

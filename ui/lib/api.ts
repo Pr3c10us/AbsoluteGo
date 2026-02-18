@@ -354,18 +354,30 @@ export function generateSplitAudio(body: {
 // ---- Video API calls ------------------------------------------------------
 
 export function generateAllVideos(
-  scriptId: number
+  scriptId: number,
+  opts?: { width?: number; height?: number; FPS?: number }
 ): Promise<QueuedResponse> {
   return apiFetch<QueuedResponse>(`/api/v1/script/video/${scriptId}`, {
     method: "POST",
+    body: JSON.stringify({
+      ...(opts?.width && { width: opts.width }),
+      ...(opts?.height && { height: opts.height }),
+      ...(opts?.FPS && { FPS: opts.FPS }),
+    }),
   });
 }
 
 export function generateSplitVideo(
-  splitId: number
+  splitId: number,
+  opts?: { width?: number; height?: number; FPS?: number }
 ): Promise<QueuedResponse> {
   return apiFetch<QueuedResponse>(`/api/v1/script/video/split/${splitId}`, {
     method: "POST",
+    body: JSON.stringify({
+      ...(opts?.width && { width: opts.width }),
+      ...(opts?.height && { height: opts.height }),
+      ...(opts?.FPS && { FPS: opts.FPS }),
+    }),
   });
 }
 

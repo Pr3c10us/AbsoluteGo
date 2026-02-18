@@ -132,32 +132,51 @@ func getEffectFilter(effect Effect, duration float64, fps int) string {
 	eased := easeExpr(totalFrames)
 	easedInv := easeInvExpr(totalFrames)
 
-	const zSmall = "1.0"
-	const zFull = "2.0"
-
 	centerX := func(z string) string { return fmt.Sprintf("(iw-iw/(%s))/2", z) }
 	centerY := func(z string) string { return fmt.Sprintf("(ih-ih/(%s))/2", z) }
-	maxX := func(z string) string { return fmt.Sprintf("(iw-iw/(%s))", z) }
-	maxY := func(z string) string { return fmt.Sprintf("(ih-ih/(%s))", z) }
-
-	zIn := fmt.Sprintf("%s+(%s-%s)*%s", zSmall, zFull, zSmall, eased)
-	zOut := fmt.Sprintf("%s-(%s-%s)*%s", zFull, zFull, zSmall, eased)
 
 	switch effect {
 	case EffectZoomIn:
-		return fmt.Sprintf("z='%s':x='%s':y='%s'", zIn, centerX(zIn), centerY(zIn))
+		// 120% → 100%: z eases from 1.2 down to 1.0
+		z := fmt.Sprintf("1.2-0.2*%s", eased)
+		return fmt.Sprintf("z='%s':x='%s':y='%s'", z, centerX(z), centerY(z))
+
 	case EffectZoomOut:
-		return fmt.Sprintf("z='%s':x='%s':y='%s'", zOut, centerX(zOut), centerY(zOut))
-	case EffectPanLeft:
-		return fmt.Sprintf("z='%s':x='%s*%s':y='%s'", zFull, maxX(zFull), easedInv, centerY(zFull))
+		// 100% → 120%: z eases from 1.0 up to 1.2
+		z := fmt.Sprintf("1.0+0.2*%s", eased)
+		return fmt.Sprintf("z='%s':x='%s':y='%s'", z, centerX(z), centerY(z))
+
 	case EffectPanRight:
-		return fmt.Sprintf("z='%s':x='%s*%s':y='%s'", zFull, maxX(zFull), eased, centerY(zFull))
-	case EffectPanUp:
-		return fmt.Sprintf("z='%s':x='%s':y='%s*%s'", zFull, centerX(zFull), maxY(zFull), easedInv)
+		// 150% width, left-edge aligned → right-edge aligned
+		// x: 0 → iw - iw/1.5   y: vertically centred
+		z := "1.5"
+		x := fmt.Sprintf("(iw-iw/%s)*%s", z, eased)
+		return fmt.Sprintf("z='%s':x='%s':y='%s'", z, x, centerY(z))
+
+	case EffectPanLeft:
+		// 150% width, right-edge aligned → left-edge aligned
+		// x: iw - iw/1.5 → 0   y: vertically centred
+		z := "1.5"
+		x := fmt.Sprintf("(iw-iw/%s)*%s", z, easedInv)
+		return fmt.Sprintf("z='%s':x='%s':y='%s'", z, x, centerY(z))
+
 	case EffectPanDown:
-		return fmt.Sprintf("z='%s':x='%s':y='%s*%s'", zFull, centerX(zFull), maxY(zFull), eased)
+		// 150% height, top-edge aligned → bottom-edge aligned
+		// y: 0 → ih - ih/1.5   x: horizontally centred
+		z := "1.5"
+		y := fmt.Sprintf("(ih-ih/%s)*%s", z, eased)
+		return fmt.Sprintf("z='%s':x='%s':y='%s'", z, centerX(z), y)
+
+	case EffectPanUp:
+		// 150% height, bottom-edge aligned → top-edge aligned
+		// y: ih - ih/1.5 → 0   x: horizontally centred
+		z := "1.5"
+		y := fmt.Sprintf("(ih-ih/%s)*%s", z, easedInv)
+		return fmt.Sprintf("z='%s':x='%s':y='%s'", z, centerX(z), y)
+
 	default:
-		return fmt.Sprintf("z='%s':x='%s':y='%s'", zSmall, centerX(zFull), centerY(zFull))
+		// No effect – show image at exactly 100%, centred
+		return "z='1.0':x='0':y='0'"
 	}
 }
 
@@ -313,7 +332,7 @@ func CreateVideoFromImages(videoData []VideoData, outputPath string, opts *Creat
 }
 
 func createVideo(videoData []VideoData, images []processedImage, outputPath string, o CreateVideoOptions) error {
-	const ss = 2
+	const ss = 1.5
 	ssW := int(float64(o.Width) * ss)
 	ssH := int(float64(o.Height) * ss)
 	padColor := "0xFF00FF"

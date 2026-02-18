@@ -418,13 +418,17 @@ export default function BookDetailPage() {
             fetchChapters(bookId, { page: pageParam, limit: PAGE_LIMIT }),
         initialPageParam: 1,
         getNextPageParam: (lastPage, allPages) => {
-            const fetched = lastPage.data?.chapters?.length ?? 0;
+            const list = lastPage.data?.chapters;
+            const fetched = Array.isArray(list) ? list.length : 0;
             return fetched < PAGE_LIMIT ? undefined : allPages.length + 1;
         },
         enabled: !isNaN(bookId) && bookId > 0,
     });
 
-    const chapters = chaptersData?.pages.flatMap((p) => p.data?.chapters ?? []) ?? [];
+    const chapters = chaptersData?.pages.flatMap((p) => {
+        const list = p.data?.chapters;
+        return Array.isArray(list) ? list : [];
+    }) ?? [];
 
     // -- intersection observer for sentinel
     useEffect(() => {
@@ -443,12 +447,17 @@ export default function BookDetailPage() {
     }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
     // -- fetch scripts (for "previous scripts" in generate modal — no pagination needed for modal)
+    // NOTE: uses "scripts-all" key (not "scripts") to avoid colliding with the
+    // useInfiniteQuery on the scripts page that uses the same ["scripts", bookId] key.
     const { data: scriptsData } = useQuery({
-        queryKey: ["scripts", bookId],
+        queryKey: ["scripts-all", bookId],
         queryFn: () => fetchScripts(bookId),
         enabled: scriptModalOpen && !isNaN(bookId) && bookId > 0,
     });
-    const scripts: Script[] = scriptsData?.data?.scripts ?? [];
+    const scripts: Script[] = (() => {
+        const list = scriptsData?.data?.scripts;
+        return Array.isArray(list) ? list : [];
+    })();
 
     // -- mutations (delete stays local; uploads are global via context)
     const deleteMutation = useMutation({

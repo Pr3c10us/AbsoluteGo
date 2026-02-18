@@ -298,6 +298,128 @@ const VoiceDialog = memo(function VoiceDialog({
     );
 });
 
+// ── Video settings dialog for width/height/FPS ──────────────────────────────
+
+const VideoSettingsDialog = memo(function VideoSettingsDialog({
+    open,
+    onOpenChange,
+    title,
+    description,
+    warningMessage,
+    onSubmit,
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    title: string;
+    description: string;
+    /** Optional warning shown above the inputs (e.g. missing-audio notice). */
+    warningMessage?: string | null;
+    onSubmit: (settings: {
+        width?: number;
+        height?: number;
+        FPS?: number;
+    }) => void;
+}) {
+    const [width, setWidth] = useState("");
+    const [height, setHeight] = useState("");
+    const [fps, setFps] = useState("");
+
+    const handleSubmit = useCallback(() => {
+        const w = width.trim() ? parseInt(width.trim(), 10) : undefined;
+        const h = height.trim() ? parseInt(height.trim(), 10) : undefined;
+        const f = fps.trim() ? parseInt(fps.trim(), 10) : undefined;
+
+        if (
+            (w !== undefined && (isNaN(w) || w <= 0)) ||
+            (h !== undefined && (isNaN(h) || h <= 0)) ||
+            (f !== undefined && (isNaN(f) || f <= 0))
+        ) {
+            toast.error("Values must be positive numbers");
+            return;
+        }
+
+        onSubmit({ width: w, height: h, FPS: f });
+        onOpenChange(false);
+        setWidth("");
+        setHeight("");
+        setFps("");
+    }, [width, height, fps, onSubmit, onOpenChange]);
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{title}</DialogTitle>
+                    <DialogDescription>{description}</DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col gap-3 py-2">
+                    {warningMessage ? (
+                        <div className="flex items-start gap-2 rounded-[4px_6px_5px_3px] border border-neutral-200 bg-neutral-50 px-3 py-2.5">
+                            {AlertTriangleIcon}
+                            <p className="text-xs font-medium text-foreground">
+                                {warningMessage}
+                            </p>
+                        </div>
+                    ) : null}
+                    <p className="text-xs text-muted-foreground">
+                        Leave blank to use defaults: 1920 × 1080 @ 30 FPS
+                    </p>
+                    <div className="grid grid-cols-3 gap-3">
+                        <div>
+                            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                Width
+                            </label>
+                            <Input
+                                type="number"
+                                value={width}
+                                onChange={(e) => setWidth(e.target.value)}
+                                placeholder="1920"
+                                min={1}
+                            />
+                        </div>
+                        <div>
+                            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                Height
+                            </label>
+                            <Input
+                                type="number"
+                                value={height}
+                                onChange={(e) => setHeight(e.target.value)}
+                                placeholder="1080"
+                                min={1}
+                            />
+                        </div>
+                        <div>
+                            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                FPS
+                            </label>
+                            <Input
+                                type="number"
+                                value={fps}
+                                onChange={(e) => setFps(e.target.value)}
+                                placeholder="30"
+                                min={1}
+                            />
+                        </div>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button
+                        variant="outline"
+                        onClick={() => onOpenChange(false)}
+                    >
+                        Cancel
+                    </Button>
+                    <Button onClick={handleSubmit} className="gap-1.5">
+                        {VideoIcon}
+                        Generate
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+});
+
 // ── VAB name dialog ─────────────────────────────────────────────────────────
 
 const VabNameDialog = memo(function VabNameDialog({
@@ -700,7 +822,6 @@ export default function SplitsPage() {
 
     // -- state
     const [confirmClear, setConfirmClear] = useState(false);
-    const [confirmVideos, setConfirmVideos] = useState(false);
     const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
     const [viewingScript, setViewingScript] = useState(false);
     const [audioPlayerState, setAudioPlayerState] = useState<{
@@ -721,12 +842,15 @@ export default function SplitsPage() {
         { type: "all" } | { type: "split"; splitId: number; splitLabel: string }
     >({ type: "all" });
 
+    // Video settings dialog state
+    const [videoDialogOpen, setVideoDialogOpen] = useState(false);
+    const [videoDialogMode, setVideoDialogMode] = useState<
+        { type: "all" } | { type: "split"; splitId: number }
+    >({ type: "all" });
+
     // -- stable callbacks
     const handleClearOpenChange = useCallback((open: boolean) => {
         if (!open) setConfirmClear(false);
-    }, []);
-    const handleConfirmVideosOpenChange = useCallback((open: boolean) => {
-        if (!open) setConfirmVideos(false);
     }, []);
     const handleViewImage = useCallback(
         (index: number) => setLightboxIdx(index),
@@ -738,21 +862,28 @@ export default function SplitsPage() {
     const closeVideoPlayer = useCallback(() => setVideoPlayerState(null), []);
 
     // -- fetch book info
+    // NOTE: uses "books-all" key to avoid colliding with the useInfiniteQuery
+    // on the home page that uses ["books", search].
     const { data: booksData } = useQuery({
-        queryKey: ["books"],
-        queryFn: () => fetchBooks(),
+        queryKey: ["books-all"],
+        queryFn: () => fetchBooks({ page: 1, limit: 500 }),
     });
     const book: Book | undefined = booksData?.data?.books?.find(
         (b) => b.id === bookId,
     );
 
     // -- fetch script info
+    // NOTE: uses "scripts-all" key to avoid colliding with the useInfiniteQuery
+    // on the scripts page that uses ["scripts", bookId].
     const { data: scriptsData } = useQuery({
-        queryKey: ["scripts", bookId],
+        queryKey: ["scripts-all", bookId],
         queryFn: () => fetchScripts(bookId),
         enabled: !isNaN(bookId) && bookId > 0,
     });
-    const script: Script | undefined = (scriptsData?.data?.scripts ?? []).find(
+    const script: Script | undefined = (() => {
+        const list = scriptsData?.data?.scripts;
+        return Array.isArray(list) ? list : [];
+    })().find(
         (s) => s.id === scriptId,
     );
 
@@ -808,14 +939,8 @@ export default function SplitsPage() {
     }, []);
 
     const handleLightboxGenerateVideo = useCallback((splitId: number) => {
-        toast.info("Generating video for split…", { duration: 3000 });
-        generateSplitVideo(splitId).catch((err) => {
-            toast.error(
-                err instanceof ApiError
-                    ? err.businessError
-                    : "Video generation failed",
-            );
-        });
+        setVideoDialogMode({ type: "split", splitId });
+        setVideoDialogOpen(true);
     }, []);
 
     // -- delete splits mutation
@@ -892,19 +1017,21 @@ export default function SplitsPage() {
     );
 
     // -- fire-and-forget: generate all videos
-    const handleGenerateAllVideos = useCallback(() => {
-        setConfirmVideos(false);
-        toast.info("Generating video for all splits with audio…", {
-            duration: 3000,
-        });
-        generateAllVideos(scriptId).catch((err) => {
-            toast.error(
-                err instanceof ApiError
-                    ? err.businessError
-                    : "Video generation failed",
-            );
-        });
-    }, [scriptId]);
+    const handleGenerateAllVideos = useCallback(
+        (settings: { width?: number; height?: number; FPS?: number }) => {
+            toast.info("Generating video for all splits with audio…", {
+                duration: 3000,
+            });
+            generateAllVideos(scriptId, settings).catch((err) => {
+                toast.error(
+                    err instanceof ApiError
+                        ? err.businessError
+                        : "Video generation failed",
+                );
+            });
+        },
+        [scriptId],
+    );
 
     // -- fire-and-forget: generate single split audio
     const handleGenerateSplitAudio = useCallback(
@@ -925,20 +1052,14 @@ export default function SplitsPage() {
         [],
     );
 
-    // -- fire-and-forget: generate single split video
+    // -- open video settings dialog for single split
     const handleGenerateSplitVideo = useCallback((split: Split) => {
         if (!split.audioURL) {
             toast.error("Generate audio first before creating video");
             return;
         }
-        toast.info("Generating video for split…", { duration: 3000 });
-        generateSplitVideo(split.id).catch((err) => {
-            toast.error(
-                err instanceof ApiError
-                    ? err.businessError
-                    : "Video generation failed",
-            );
-        });
+        setVideoDialogMode({ type: "split", splitId: split.id });
+        setVideoDialogOpen(true);
     }, []);
 
     // -- media player callbacks
@@ -972,6 +1093,27 @@ export default function SplitsPage() {
             }
         },
         [voiceDialogMode, handleGenerateAllAudios, handleGenerateSplitAudio],
+    );
+
+    // -- video settings dialog submit handler
+    const handleVideoSettingsSubmit = useCallback(
+        (settings: { width?: number; height?: number; FPS?: number }) => {
+            if (videoDialogMode.type === "all") {
+                handleGenerateAllVideos(settings);
+            } else {
+                toast.info("Generating video for split…", { duration: 3000 });
+                generateSplitVideo(videoDialogMode.splitId, settings).catch(
+                    (err) => {
+                        toast.error(
+                            err instanceof ApiError
+                                ? err.businessError
+                                : "Video generation failed",
+                        );
+                    },
+                );
+            }
+        },
+        [videoDialogMode, handleGenerateAllVideos],
     );
 
     // -- open voice dialog for a split
@@ -1081,44 +1223,27 @@ export default function SplitsPage() {
                 </AlertDialogContent>
             </AlertDialog>
 
-            {/* ── Generate all videos confirmation with warning ── */}
-            <AlertDialog
-                open={confirmVideos}
-                onOpenChange={handleConfirmVideosOpenChange}
-            >
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2">
-                            {AlertTriangleIcon}
-                            Generate Videos for All Splits?
-                        </AlertDialogTitle>
-                        <AlertDialogDescription asChild>
-                            <div className="space-y-2">
-                                <p>
-                                    This will queue video generation for all
-                                    splits that have audio.
-                                </p>
-                                {splitsWithoutAudio > 0 ? (
-                                    <p className="rounded-[4px_6px_5px_3px] border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs font-medium text-foreground">
-                                        {splitsWithoutAudio} split
-                                        {splitsWithoutAudio !== 1
-                                            ? "s"
-                                            : ""}{" "}
-                                        without audio will be skipped. Generate
-                                        audio first for full coverage.
-                                    </p>
-                                ) : null}
-                            </div>
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleGenerateAllVideos}>
-                            Generate Videos
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            {/* ── Video settings dialog ── */}
+            <VideoSettingsDialog
+                open={videoDialogOpen}
+                onOpenChange={setVideoDialogOpen}
+                title={
+                    videoDialogMode.type === "all"
+                        ? "Generate Videos — All Splits"
+                        : "Generate Video"
+                }
+                description={
+                    videoDialogMode.type === "all"
+                        ? "This will queue video generation for all splits that have audio. Configure resolution and frame rate below."
+                        : "Configure resolution and frame rate for this split video."
+                }
+                warningMessage={
+                    videoDialogMode.type === "all" && splitsWithoutAudio > 0
+                        ? `${splitsWithoutAudio} split${splitsWithoutAudio !== 1 ? "s" : ""} without audio will be skipped. Generate audio first for full coverage.`
+                        : null
+                }
+                onSubmit={handleVideoSettingsSubmit}
+            />
 
             <div className="mx-auto max-w-5xl px-6 pb-20 max-sm:px-4">
                 {/* ── Hero ── */}
@@ -1195,7 +1320,10 @@ export default function SplitsPage() {
                                                 Generate Audios
                                             </DropdownMenuItem>
                                             <DropdownMenuItem
-                                                onClick={() => setConfirmVideos(true)}
+                                                onClick={() => {
+                                                    setVideoDialogMode({ type: "all" });
+                                                    setVideoDialogOpen(true);
+                                                }}
                                                 disabled={!hasAnyAudio}
                                             >
                                                 {VideoIcon}

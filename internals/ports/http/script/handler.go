@@ -178,15 +178,30 @@ func (h *Handler) DeleteSplits(c *gin.Context) {
 }
 
 func (h *Handler) GenerateVideos(c *gin.Context) {
-	var body struct {
+	var uri struct {
 		ScriptId int64 `uri:"scriptId" binding:"required,gt=0"`
 	}
-	if err := c.ShouldBindUri(&body); err != nil {
+	if err := c.ShouldBindUri(&uri); err != nil {
 		_ = c.Error(validator.ValidateRequest(err))
 		return
 	}
 
-	if err := h.service.CreateVideos.Handle(body.ScriptId); err != nil {
+	var body struct {
+		Width  int `json:"width" binding:"omitempty,gt=0"`
+		Height int `json:"height" binding:"omitempty,gt=0"`
+		FPS    int `json:"FPS" binding:"omitempty,gt=0"`
+	}
+	if err := c.ShouldBind(&body); err != nil {
+		_ = c.Error(validator.ValidateRequest(err))
+		return
+	}
+
+	if err := h.service.CreateVideos.Handle(commands.GenerateVideosParameter{
+		ScriptId: uri.ScriptId,
+		Width:    body.Width,
+		Height:   body.Height,
+		FPS:      body.FPS,
+	}); err != nil {
 		_ = c.Error(err)
 		return
 	}
@@ -195,15 +210,30 @@ func (h *Handler) GenerateVideos(c *gin.Context) {
 }
 
 func (h *Handler) GenerateVideo(c *gin.Context) {
-	var body struct {
+	var uri struct {
 		SplitId int64 `uri:"splitId" binding:"required,gt=0"`
 	}
-	if err := c.ShouldBindUri(&body); err != nil {
+	if err := c.ShouldBindUri(&uri); err != nil {
 		_ = c.Error(validator.ValidateRequest(err))
 		return
 	}
 
-	if err := h.service.CreateVideo.Handle(body.SplitId); err != nil {
+	var body struct {
+		Width  int `json:"width" binding:"omitempty,gt=0"`
+		Height int `json:"height" binding:"omitempty,gt=0"`
+		FPS    int `json:"FPS" binding:"omitempty,gt=0"`
+	}
+	if err := c.ShouldBind(&body); err != nil {
+		_ = c.Error(validator.ValidateRequest(err))
+		return
+	}
+
+	if err := h.service.CreateVideo.Handle(commands.GenerateVideoParameter{
+		Id:     uri.SplitId,
+		Width:  body.Width,
+		Height: body.Height,
+		FPS:    body.FPS,
+	}); err != nil {
 		_ = c.Error(err)
 		return
 	}

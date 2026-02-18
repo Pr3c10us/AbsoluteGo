@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"errors"
 	"github.com/Pr3c10us/absolutego/internals/domains/script"
 	"github.com/Pr3c10us/absolutego/internals/domains/storage"
 )
@@ -17,7 +16,7 @@ func (service *DeleteSplits) Handle(scriptId int64) error {
 		return err
 	}
 	if len(splits) < 1 {
-		return errors.New("no splits for script")
+		return nil
 	}
 
 	var urls []string

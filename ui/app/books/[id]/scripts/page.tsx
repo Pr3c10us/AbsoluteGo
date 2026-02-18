@@ -2,7 +2,7 @@
 
 import { memo, useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -321,6 +321,7 @@ export default function ScriptsPage() {
     const bookId = Number(params.id);
     const queryClient = useQueryClient();
     const searchParams = useSearchParams();
+    const router = useRouter();
 
     // -- state
     const [modalOpen, setModalOpen] = useState(false);
@@ -335,7 +336,16 @@ export default function ScriptsPage() {
 
     // -- stable callbacks
     const handleView = useCallback((script: Script) => setViewingScript(script), []);
-    const closeViewer = useCallback(() => setViewingScript(null), []);
+    const closeViewer = useCallback(() => {
+        setViewingScript(null);
+        // If the viewer was opened via ?scriptId=, strip it so the effect won't re-open it
+        if (searchParams.get("scriptId")) {
+            const next = new URLSearchParams(searchParams.toString());
+            next.delete("scriptId");
+            const qs = next.toString();
+            router.replace(qs ? `?${qs}` : window.location.pathname, { scroll: false });
+        }
+    }, [searchParams, router]);
     const handleDeleteClick = useCallback((script: Script) => setConfirmScript(script), []);
     const handleConfirmOpenChange = useCallback(
         (open: boolean) => { if (!open) setConfirmScript(null); },
@@ -373,12 +383,16 @@ export default function ScriptsPage() {
             fetchScripts(bookId, { page: pageParam, limit: PAGE_LIMIT }),
         initialPageParam: 1,
         getNextPageParam: (lastPage, allPages) => {
-            const fetched = lastPage.data?.scripts?.length ?? 0;
+            const list = lastPage.data?.scripts;
+            const fetched = Array.isArray(list) ? list.length : 0;
             return fetched < PAGE_LIMIT ? undefined : allPages.length + 1;
         },
         enabled: !isNaN(bookId) && bookId > 0,
     });
-    const scripts: Script[] = scriptsData?.pages.flatMap((p) => p.data?.scripts ?? []) ?? [];
+    const scripts: Script[] = scriptsData?.pages.flatMap((p) => {
+        const list = p.data?.scripts;
+        return Array.isArray(list) ? list : [];
+    }) ?? [];
 
     // -- intersection observer for sentinel
     useEffect(() => {
@@ -397,11 +411,17 @@ export default function ScriptsPage() {
     }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
     // -- auto-open script viewer from ?scriptId= query param (event tracker deep link)
+    const autoOpenedScriptId = useRef<string | null>(null);
     useEffect(() => {
         const sid = searchParams.get("scriptId");
         if (!sid || scripts.length === 0) return;
+        // Only auto-open once per scriptId value to prevent re-opening after close
+        if (autoOpenedScriptId.current === sid) return;
         const target = scripts.find((s) => s.id === Number(sid));
-        if (target) setViewingScript(target);
+        if (target) {
+            autoOpenedScriptId.current = sid;
+            setViewingScript(target);
+        }
     }, [searchParams, scripts]);
 
     // -- delete script mutation

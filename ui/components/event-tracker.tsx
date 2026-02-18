@@ -305,6 +305,46 @@ const EventTracker = memo(function EventTracker() {
             e.Status === "retry",
     ).length;
 
+    // ── Silent background refetch on event changes ──────────────────────────
+    const prevEventsFingerprintRef = useRef<string>("");
+    useEffect(() => {
+        if (allEvents.length === 0) return;
+        // Build a fingerprint of id+status for every event
+        const fingerprint = allEvents.map((e) => `${e.Id}:${e.Status}`).join(",");
+        if (fingerprint === prevEventsFingerprintRef.current) return;
+
+        const prev = prevEventsFingerprintRef.current;
+        prevEventsFingerprintRef.current = fingerprint;
+
+        // Skip invalidation on the very first load (no previous fingerprint)
+        if (!prev) return;
+
+        // Collect invalidation keys for all events that changed or are new
+        const prevSet = new Map(
+            prev.split(",").map((s) => {
+                const [id, status] = s.split(":");
+                return [id, status];
+            }),
+        );
+        const keysToInvalidate: (string | number)[][] = [];
+        for (const event of allEvents) {
+            const prevStatus = prevSet.get(String(event.Id));
+            if (prevStatus === event.Status) continue; // unchanged
+            for (const key of getInvalidationKeys(event)) {
+                keysToInvalidate.push(key);
+            }
+        }
+
+        // Deduplicate and invalidate
+        const seen = new Set<string>();
+        for (const key of keysToInvalidate) {
+            const k = JSON.stringify(key);
+            if (seen.has(k)) continue;
+            seen.add(k);
+            queryClient.invalidateQueries({ queryKey: key });
+        }
+    }, [allEvents, queryClient]);
+
     // ── Hover show/hide with delay ──
     const cancelHide = useCallback(() => {
         if (hideTimerRef.current) {
