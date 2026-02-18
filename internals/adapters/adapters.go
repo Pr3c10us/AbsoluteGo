@@ -4,8 +4,10 @@ import (
 	"database/sql"
 	event2 "github.com/Pr3c10us/absolutego/internals/adapters/event"
 	queue2 "github.com/Pr3c10us/absolutego/internals/adapters/queue"
+	vab2 "github.com/Pr3c10us/absolutego/internals/adapters/vab"
 	"github.com/Pr3c10us/absolutego/internals/domains/event"
 	"github.com/Pr3c10us/absolutego/internals/domains/queue"
+	"github.com/Pr3c10us/absolutego/internals/domains/vab"
 	amqp "github.com/rabbitmq/amqp091-go"
 
 	ai2 "github.com/Pr3c10us/absolutego/internals/adapters/ai"
@@ -39,6 +41,7 @@ type Adapters struct {
 	ScriptImplementation  script.Interface
 	QueueImplementation   queue.Interface
 	EventImplementation   event.Interface
+	VABImplementation     vab.Interface
 }
 
 func NewAdapters(dependencies AdapterDependencies) *Adapters {
@@ -51,5 +54,6 @@ func NewAdapters(dependencies AdapterDependencies) *Adapters {
 		ScriptImplementation:  script2.NewScriptImplementation(dependencies.DB),
 		QueueImplementation:   queue2.NewAMQImplementation(dependencies.AMQP, dependencies.EnvironmentVariables),
 		EventImplementation:   event2.NewEventImplementation(dependencies.DB),
+		VABImplementation:     vab2.NewVABImplementation(dependencies.DB),
 	}
 }

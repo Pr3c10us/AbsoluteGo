@@ -68,7 +68,9 @@ CREATE TABLE IF NOT EXISTS vabs
     name      TEXT    NOT NULL,
     url       TEXT,
     script_id INTEGER NOT NULL,
-    FOREIGN KEY (script_id) REFERENCES scripts (id) ON DELETE CASCADE
+    book_id INTEGER NOT NULL,
+    FOREIGN KEY (script_id) REFERENCES scripts (id) ON DELETE CASCADE,
+    FOREIGN KEY (book_id) REFERENCES books (id) ON DELETE CASCADE
 );
 
 CREATE TRIGGER IF NOT EXISTS trg_pages_updated_at
@@ -96,3 +98,4 @@ CREATE INDEX IF NOT EXISTS idx_scripts_book_id ON scripts (book_id);
 CREATE INDEX IF NOT EXISTS idx_splits_script_id ON splits (script_id);
 CREATE INDEX IF NOT EXISTS idx_splits_panel_id ON splits (panel_id);
 CREATE INDEX IF NOT EXISTS idx_vabs_script_id ON vabs (script_id);
+CREATE INDEX IF NOT EXISTS idx_vabs_book_id ON vabs (book_id);

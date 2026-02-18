@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/Pr3c10us/absolutego/internals/ports/queue/createvab"
 	"github.com/Pr3c10us/absolutego/internals/ports/queue/generateaudio"
 	"github.com/Pr3c10us/absolutego/internals/ports/queue/generateaudios"
 	"github.com/Pr3c10us/absolutego/internals/ports/queue/generatevideo"
@@ -49,6 +50,7 @@ func NewAMQConsumer(environmentVariables *configs.EnvironmentVariables, amqp *am
 	amqConsumer.Consume(generateaudios.Handler, string(queue.QueueGenAudios), 20)
 	amqConsumer.Consume(generatevideo.Handler, string(queue.QueueGenVideo), 5)
 	amqConsumer.Consume(generatevideos.Handler, string(queue.QueueGenVideos), 5)
+	amqConsumer.Consume(createvab.Handler, string(queue.QueueMergeVideo), 5)
 
 	return amqConsumer
 }

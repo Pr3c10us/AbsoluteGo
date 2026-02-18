@@ -3,6 +3,7 @@ package http
 import (
 	"fmt"
 	"github.com/Pr3c10us/absolutego/internals/ports/http/event"
+	"github.com/Pr3c10us/absolutego/internals/ports/http/vab"
 
 	"github.com/Pr3c10us/absolutego/internals/adapters"
 	"github.com/Pr3c10us/absolutego/internals/ports/http/book"
@@ -40,6 +41,7 @@ func NewGinServer(services *services.Services, adapters *adapters.Adapters, envi
 	ginServer.bookRoutes()
 	ginServer.scriptRoutes()
 	ginServer.eventRoutes()
+	ginServer.vabRoutes()
 
 	return ginServer
 }
@@ -93,6 +95,16 @@ func (server *GinServer) eventRoutes() {
 	eventRoute := server.Engine.Group("/api/v1/event")
 	{
 		eventRoute.GET("", handler.GetEvents)
+	}
+}
+
+func (server *GinServer) vabRoutes() {
+	handler := vab.NewVABHandler(server.Services.VABServices)
+	eventRoute := server.Engine.Group("/api/v1/vab")
+	{
+		eventRoute.POST("", handler.CreateVAB)
+		eventRoute.GET("", handler.GetVABs)
+		eventRoute.DELETE("/:id", handler.DeleteVAB)
 	}
 }
 

@@ -1,19 +1,19 @@
-package generatescript
+package createvab
 
 import (
 	"encoding/json"
 	"github.com/Pr3c10us/absolutego/internals/domains/queueport"
-	commands2 "github.com/Pr3c10us/absolutego/internals/services/script/commands"
+	"github.com/Pr3c10us/absolutego/internals/services/vab/commands"
 )
 
 func Handler(c *queueport.Context) (*queueport.HandlerResult, error) {
-	var data commands2.GenerateScriptParameters
+	var data commands.CreateVABParameter
 	err := json.Unmarshal(c.Data, &data)
 	if err != nil {
 		return nil, err
 	}
-	_, id, err := c.Services.ScriptServices.GenerateScript.Handle(data)
+	id, err := c.Services.VABServices.CreateVAB.Handle(data)
 	return &queueport.HandlerResult{
-		ScriptId: id,
+		VabId: id,
 	}, err
 }

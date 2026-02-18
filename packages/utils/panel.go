@@ -951,41 +951,30 @@ func DetectAndExtractPanels(imagePath string) DetectResult {
 
 		colorful := isColorful(cropped)
 
-		var gradedPath string
-		var processErr error
-
 		if colorful {
 			cleanedPath, err := RemoveSpeechBubbleText(tempPath, panelsDir, nil)
 			if err != nil {
 				cleanedPath = tempPath
 			}
-			gradedPath, processErr = ApplyCinematicTealOrange(cleanedPath, panelsDir)
-			if processErr != nil {
-				gradedPath = cleanedPath
-			}
+			finalPath := filepath.Join(panelsDir, fmt.Sprintf("%d.png", i+1))
 			if cleanedPath != tempPath {
-				os.Remove(cleanedPath)
+				os.Rename(cleanedPath, finalPath)
+				os.Remove(tempPath)
+			} else {
+				os.Rename(tempPath, finalPath)
 			}
 		} else {
 			cleanedPath, err := manga.RemoveSpeechBubbleText(tempPath, panelsDir, nil)
 			if err != nil {
 				cleanedPath = tempPath
 			}
-			gradedPath, processErr = manga.ApplyGradientMapWithPreset(cleanedPath, panelsDir, manga.PresetManga)
-			if processErr != nil {
-				gradedPath = cleanedPath
-			}
+			finalPath := filepath.Join(panelsDir, fmt.Sprintf("%d.png", i+1))
 			if cleanedPath != tempPath {
-				os.Remove(cleanedPath)
+				os.Rename(cleanedPath, finalPath)
+				os.Remove(tempPath)
+			} else {
+				os.Rename(tempPath, finalPath)
 			}
-		}
-
-		finalPath := filepath.Join(panelsDir, fmt.Sprintf("%d.png", i+1))
-		if gradedPath != "" && gradedPath != tempPath {
-			os.Rename(gradedPath, finalPath)
-			os.Remove(tempPath)
-		} else {
-			os.Rename(tempPath, finalPath)
 		}
 	}
 

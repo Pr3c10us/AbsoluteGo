@@ -7,6 +7,7 @@ import (
 	"github.com/Pr3c10us/absolutego/internals/domains/queue"
 	"github.com/Pr3c10us/absolutego/internals/domains/script"
 	"github.com/Pr3c10us/absolutego/internals/domains/storage"
+	"github.com/Pr3c10us/absolutego/internals/domains/vab"
 	"github.com/Pr3c10us/absolutego/internals/services/script/commands"
 	"github.com/Pr3c10us/absolutego/internals/services/script/queries"
 	"github.com/Pr3c10us/absolutego/packages/configs"
@@ -39,10 +40,10 @@ type Queries struct {
 	GetSplits  *queries.GetSplits
 }
 
-func NewScriptServices(script script.Interface, book book.Interface, ai ai.Interface, eventImplementation event.Interface, queueImplementation queue.Interface, storageImplementation storage.Interface, environmentVariables *configs.EnvironmentVariables) Services {
+func NewScriptServices(script script.Interface, book book.Interface, ai ai.Interface, eventImplementation event.Interface, queueImplementation queue.Interface, storageImplementation storage.Interface, environmentVariables *configs.EnvironmentVariables, vabImplementation vab.Interface) Services {
 	return Services{
 		Commands: Commands{
-			DeleteScript:   commands.NewDeleteScript(script, storageImplementation),
+			DeleteScript:   commands.NewDeleteScript(script, storageImplementation, vabImplementation),
 			DeleteSplits:   commands.NewDeleteSplits(script, storageImplementation),
 			GenerateScript: commands.NewGenerateScript(script, book, ai),
 			CreateScript:   commands.NewCreateScript(eventImplementation, book, queueImplementation, script),

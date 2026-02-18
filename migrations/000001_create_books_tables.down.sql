@@ -3,6 +3,7 @@ PRAGMA foreign_keys = OFF;
 DROP TRIGGER IF EXISTS trg_panels_updated_at;
 DROP TRIGGER IF EXISTS trg_pages_updated_at;
 
+DROP INDEX IF EXISTS idx_vabs_book_id;
 DROP INDEX IF EXISTS idx_vabs_script_id;
 DROP INDEX IF EXISTS idx_script_splits_panel_id;
 DROP INDEX IF EXISTS idx_script_splits_page_id;

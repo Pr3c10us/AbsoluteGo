@@ -31,7 +31,7 @@ type Buckets struct {
 	PanelBucket string
 	AudioBucket string
 	VideoBucket string
-	VabBucket   string
+	VABBucket   string
 }
 
 type GeminiConfig struct {
@@ -79,7 +79,7 @@ func LoadEnvironment() *EnvironmentVariables {
 			PanelBucket: getEnvOrError("PANEL_BUCKET"),
 			AudioBucket: getEnvOrError("AUDIOS_BUCKET"),
 			VideoBucket: getEnvOrError("VIDEOS_BUCKET"),
-			VabBucket:   getEnvOrError("VABS_BUCKET"),
+			VABBucket:   getEnvOrError("VABS_BUCKET"),
 		},
 		Gemini: &GeminiConfig{
 			APIKEY:    getEnvOrError("GEMINI_API_KEY"),

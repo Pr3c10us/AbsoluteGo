@@ -255,82 +255,82 @@ const Lightbox = memo(function Lightbox({
                             </p>
 
                             {/* ── Media section ── */}
-                            {(current.audioURL || current.videoURL || current.splitId) ? (
-                                <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
-                                    <span className="block text-[10px] font-semibold uppercase tracking-widest text-white/50">
-                                        Media
-                                    </span>
+                            {/*{(current.audioURL || current.videoURL || current.splitId) ? (*/}
+                            {/*    <div className="mt-4 space-y-3 border-t border-white/10 pt-4">*/}
+                            {/*        <span className="block text-[10px] font-semibold uppercase tracking-widest text-white/50">*/}
+                            {/*            Media*/}
+                            {/*        </span>*/}
 
-                                    {/* Audio player */}
-                                    {current.audioURL ? (
-                                        <div>
-                                            <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-white/70">
-                                                {LbAudioIcon}
-                                                Audio
-                                            </div>
-                                            {playingAudio ? (
-                                                <div>
-                                                    {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                                                    <audio
-                                                        controls
-                                                        autoPlay
-                                                        className="w-full h-8"
-                                                        src={current.audioURL}
-                                                        onEnded={() => setPlayingAudio(false)}
-                                                    />
-                                                </div>
-                                            ) : (
-                                                <button
-                                                    onClick={() => setPlayingAudio(true)}
-                                                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-[3px_5px_4px_3px] bg-white/15 px-2.5 py-1 text-[11px] font-medium text-white/80 transition-colors hover:bg-white/25"
-                                                >
-                                                    {LbPlayIcon}
-                                                    Play Audio
-                                                </button>
-                                            )}
-                                        </div>
-                                    ) : current.splitId && onGenerateAudio ? (
-                                        <button
-                                            onClick={() => onGenerateAudio(current.splitId!)}
-                                            className="inline-flex cursor-pointer items-center gap-1.5 rounded-[3px_5px_4px_3px] bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/60 transition-colors hover:bg-white/20 hover:text-white/80"
-                                        >
-                                            {LbSparklesIcon}
-                                            Generate Audio
-                                        </button>
-                                    ) : null}
+                            {/*        /!* Audio player *!/*/}
+                            {/*        {current.audioURL ? (*/}
+                            {/*            <div>*/}
+                            {/*                <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-white/70">*/}
+                            {/*                    {LbAudioIcon}*/}
+                            {/*                    Audio*/}
+                            {/*                </div>*/}
+                            {/*                {playingAudio ? (*/}
+                            {/*                    <div>*/}
+                            {/*                        /!* eslint-disable-next-line jsx-a11y/media-has-caption *!/*/}
+                            {/*                        <audio*/}
+                            {/*                            controls*/}
+                            {/*                            autoPlay*/}
+                            {/*                            className="w-full h-8"*/}
+                            {/*                            src={current.audioURL}*/}
+                            {/*                            onEnded={() => setPlayingAudio(false)}*/}
+                            {/*                        />*/}
+                            {/*                    </div>*/}
+                            {/*                ) : (*/}
+                            {/*                    <button*/}
+                            {/*                        onClick={() => setPlayingAudio(true)}*/}
+                            {/*                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-[3px_5px_4px_3px] bg-white/15 px-2.5 py-1 text-[11px] font-medium text-white/80 transition-colors hover:bg-white/25"*/}
+                            {/*                    >*/}
+                            {/*                        {LbPlayIcon}*/}
+                            {/*                        Play Audio*/}
+                            {/*                    </button>*/}
+                            {/*                )}*/}
+                            {/*            </div>*/}
+                            {/*        ) : current.splitId && onGenerateAudio ? (*/}
+                            {/*            <button*/}
+                            {/*                onClick={() => onGenerateAudio(current.splitId!)}*/}
+                            {/*                className="inline-flex cursor-pointer items-center gap-1.5 rounded-[3px_5px_4px_3px] bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/60 transition-colors hover:bg-white/20 hover:text-white/80"*/}
+                            {/*            >*/}
+                            {/*                {LbSparklesIcon}*/}
+                            {/*                Generate Audio*/}
+                            {/*            </button>*/}
+                            {/*        ) : null}*/}
 
-                                    {/* Video link / generate */}
-                                    {current.videoURL ? (
-                                        <div>
-                                            <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-white/70">
-                                                {LbVideoIcon}
-                                                Video
-                                            </div>
-                                            <a
-                                                href={current.videoURL}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-[3px_5px_4px_3px] bg-white/15 px-2.5 py-1 text-[11px] font-medium text-white/80 transition-colors hover:bg-white/25"
-                                            >
-                                                {LbPlayIcon}
-                                                Play Video
-                                            </a>
-                                        </div>
-                                    ) : current.splitId && current.audioURL && onGenerateVideo ? (
-                                        <button
-                                            onClick={() => onGenerateVideo(current.splitId!)}
-                                            className="inline-flex cursor-pointer items-center gap-1.5 rounded-[3px_5px_4px_3px] bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/60 transition-colors hover:bg-white/20 hover:text-white/80"
-                                        >
-                                            {LbSparklesIcon}
-                                            Generate Video
-                                        </button>
-                                    ) : current.splitId && !current.audioURL ? (
-                                        <span className="block text-[11px] text-white/30">
-                                            Video needs audio first
-                                        </span>
-                                    ) : null}
-                                </div>
-                            ) : null}
+                            {/*        /!* Video link / generate *!/*/}
+                            {/*        {current.videoURL ? (*/}
+                            {/*            <div>*/}
+                            {/*                <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-white/70">*/}
+                            {/*                    {LbVideoIcon}*/}
+                            {/*                    Video*/}
+                            {/*                </div>*/}
+                            {/*                <a*/}
+                            {/*                    href={current.videoURL}*/}
+                            {/*                    target="_blank"*/}
+                            {/*                    rel="noopener noreferrer"*/}
+                            {/*                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-[3px_5px_4px_3px] bg-white/15 px-2.5 py-1 text-[11px] font-medium text-white/80 transition-colors hover:bg-white/25"*/}
+                            {/*                >*/}
+                            {/*                    {LbPlayIcon}*/}
+                            {/*                    Play Video*/}
+                            {/*                </a>*/}
+                            {/*            </div>*/}
+                            {/*        ) : current.splitId && current.audioURL && onGenerateVideo ? (*/}
+                            {/*            <button*/}
+                            {/*                onClick={() => onGenerateVideo(current.splitId!)}*/}
+                            {/*                className="inline-flex cursor-pointer items-center gap-1.5 rounded-[3px_5px_4px_3px] bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/60 transition-colors hover:bg-white/20 hover:text-white/80"*/}
+                            {/*            >*/}
+                            {/*                {LbSparklesIcon}*/}
+                            {/*                Generate Video*/}
+                            {/*            </button>*/}
+                            {/*        ) : current.splitId && !current.audioURL ? (*/}
+                            {/*            <span className="block text-[11px] text-white/30">*/}
+                            {/*                Video needs audio first*/}
+                            {/*            </span>*/}
+                            {/*        ) : null}*/}
+                            {/*    </div>*/}
+                            {/*) : null}*/}
                         </div>
                     </div>
                 ) : null}

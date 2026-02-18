@@ -3,6 +3,8 @@ package commands
 import (
 	"errors"
 	"github.com/Pr3c10us/absolutego/internals/domains/storage"
+	"github.com/Pr3c10us/absolutego/internals/domains/vab"
+	"github.com/Pr3c10us/absolutego/internals/services/vab/commands"
 
 	"github.com/Pr3c10us/absolutego/internals/domains/script"
 	"github.com/Pr3c10us/absolutego/packages/appError"
@@ -12,6 +14,7 @@ type DeleteScript struct {
 	scriptImplementation  script.Interface
 	storageImplementation storage.Interface
 	deleteSplits          *DeleteSplits
+	deleteVAB             *commands.DeleteVAB
 }
 
 func (s *DeleteScript) Handle(scriptId int64) error {
@@ -31,10 +34,11 @@ func (s *DeleteScript) Handle(scriptId int64) error {
 	return s.scriptImplementation.DeleteScript(scriptId)
 }
 
-func NewDeleteScript(scriptImplementation script.Interface, storageImplementation storage.Interface) *DeleteScript {
+func NewDeleteScript(scriptImplementation script.Interface, storageImplementation storage.Interface, vabImplementation vab.Interface) *DeleteScript {
 	return &DeleteScript{
 		scriptImplementation:  scriptImplementation,
 		storageImplementation: storageImplementation,
 		deleteSplits:          NewDeleteSplits(scriptImplementation, storageImplementation),
+		deleteVAB:             commands.NewDeleteVAB(vabImplementation, storageImplementation),
 	}
 }

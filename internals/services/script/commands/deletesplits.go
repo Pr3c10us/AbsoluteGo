@@ -20,7 +20,7 @@ func (service *DeleteSplits) Handle(scriptId int64) error {
 		return errors.New("no splits for script")
 	}
 
-	urls := []string{}
+	var urls []string
 	for _, split := range splits {
 		if split.AudioURL != nil {
 			urls = append(urls, *split.AudioURL)
