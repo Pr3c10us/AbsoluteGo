@@ -8,7 +8,7 @@ import {
     useEffect,
     type PointerEvent as ReactPointerEvent,
 } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     Loader2,
@@ -215,7 +215,7 @@ function getInvalidationKeys(event: EventItem): (string | number)[][] {
         case "gen_video":
             return [...(event.ScriptId ? [["splits", event.ScriptId]] : [])];
         case "merge_video":
-            return [["books"]];
+            return [["vabs", bookId]];
         default:
             return [];
     }
@@ -246,6 +246,7 @@ const OPERATION_OPTIONS: { value: string; label: string }[] = [
 
 const EventTracker = memo(function EventTracker() {
     const router = useRouter();
+    const pathname = usePathname();
     const queryClient = useQueryClient();
     const [mounted, setMounted] = useState(false);
     const [corner, setCorner] = useState<Corner>("br");
@@ -421,17 +422,21 @@ const EventTracker = memo(function EventTracker() {
         (event: EventItem) => {
             const href = getEventHref(event);
             if (href) {
-                // Invalidate relevant queries so the page shows fresh data
-                // even if the user is already on the target route
+                // Always invalidate so stale data is refreshed — this is the
+                // only mechanism that works when the user is already on the
+                // target route (router.push is a no-op for same-path navigation)
                 for (const key of getInvalidationKeys(event)) {
                     queryClient.invalidateQueries({ queryKey: key });
                 }
-                router.push(href);
+                // Only push if we're not already on the target page
+                if (pathname !== href) {
+                    router.push(href);
+                }
                 setPinned(false);
                 setExpanded(false);
             }
         },
-        [router, queryClient],
+        [router, pathname, queryClient],
     );
 
     if (!mounted) return null;

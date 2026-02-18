@@ -133,7 +133,7 @@ func getEffectFilter(effect Effect, duration float64, fps int) string {
 	easedInv := easeInvExpr(totalFrames)
 
 	const zSmall = "1.0"
-	const zFull = "1.3"
+	const zFull = "2.0"
 
 	centerX := func(z string) string { return fmt.Sprintf("(iw-iw/(%s))/2", z) }
 	centerY := func(z string) string { return fmt.Sprintf("(ih-ih/(%s))/2", z) }
@@ -313,7 +313,7 @@ func CreateVideoFromImages(videoData []VideoData, outputPath string, opts *Creat
 }
 
 func createVideo(videoData []VideoData, images []processedImage, outputPath string, o CreateVideoOptions) error {
-	const ss = 1.5
+	const ss = 2
 	ssW := int(float64(o.Width) * ss)
 	ssH := int(float64(o.Height) * ss)
 	padColor := "0xFF00FF"

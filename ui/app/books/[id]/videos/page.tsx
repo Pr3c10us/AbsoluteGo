@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, Film, Play, Trash2, AlertTriangle, Search, X } from "lucide-react";
+import { ArrowLeft, Film, Play, Trash2, AlertTriangle, Search, X, Download } from "lucide-react";
 import {
     fetchBooks,
     fetchScripts,
@@ -171,17 +171,30 @@ const VABThumbnailCard = memo(function VABThumbnailCard({
                         </span>
                     </div>
                 </div>
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete(vab);
-                    }}
-                    disabled={deleteDisabled}
-                    aria-label={`Delete ${vab.Name}`}
-                    className="mt-0.5 shrink-0 cursor-pointer text-neutral-300 opacity-0 transition-all duration-150 hover:text-foreground group-hover:opacity-100 disabled:pointer-events-none"
-                >
-                    <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                <div className="mt-0.5 flex shrink-0 items-center gap-1.5 opacity-0 transition-all duration-150 group-hover:opacity-100">
+                    {vab.Url ? (
+                        <a
+                            href={vab.Url}
+                            download={`${vab.Name}.mp4`}
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label={`Download ${vab.Name}`}
+                            className="cursor-pointer text-neutral-300 transition-colors hover:text-foreground"
+                        >
+                            <Download className="h-3.5 w-3.5" />
+                        </a>
+                    ) : null}
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(vab);
+                        }}
+                        disabled={deleteDisabled}
+                        aria-label={`Delete ${vab.Name}`}
+                        className="cursor-pointer text-neutral-300 transition-colors hover:text-foreground disabled:pointer-events-none"
+                    >
+                        <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                </div>
             </div>
         </li>
     );
