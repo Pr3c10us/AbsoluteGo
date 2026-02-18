@@ -50,7 +50,7 @@ func (i *implementation) Update(id int64, v vab.VAB) error {
 	return assertRowAffected(res)
 }
 
-func (i *implementation) GetVABs(name string, scriptId int64, bookId int64) ([]vab.VAB, error) {
+func (i *implementation) GetVABs(name string, scriptId, bookId int64, page, limit int) ([]vab.VAB, error) {
 	q := sq.Select("id", "name", "url", "script_id", "book_id").From("vabs")
 	if name != "" {
 		q = q.Where(sq.Like{"name": fmt.Sprintf("%%%s%%", name)})
@@ -60,6 +60,20 @@ func (i *implementation) GetVABs(name string, scriptId int64, bookId int64) ([]v
 	}
 	if bookId > 0 {
 		q = q.Where(sq.Eq{"book_id": bookId})
+	}
+
+	if limit <= 0 {
+		limit = 20
+	}
+
+	if page <= 0 {
+		page = 1
+	}
+
+	q = q.Limit(uint64(limit))
+	offset := (page - 1) * limit
+	if offset > 0 {
+		q = q.Offset(uint64(offset))
 	}
 
 	rows, err := q.RunWith(i.db).Query()
