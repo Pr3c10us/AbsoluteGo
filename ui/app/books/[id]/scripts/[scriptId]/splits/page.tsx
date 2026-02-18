@@ -1017,6 +1017,13 @@ export default function SplitsPage() {
     // -- derived: check if any split has audio
     const hasAnyAudio = useMemo(() => splits.some((s) => s.audioURL), [splits]);
 
+    // -- derived: audio coverage stats
+    const splitsWithAudioCount = useMemo(
+        () => splits.filter((s) => s.audioURL).length,
+        [splits],
+    );
+    const allSplitsHaveAudio = hasSplits && splitsWithAudioCount === splits.length;
+
     // -- derived: video coverage stats
     const splitsWithVideo = useMemo(
         () => splits.filter((s) => s.videoURL).length,
@@ -1302,12 +1309,16 @@ export default function SplitsPage() {
                 onOpenChange={setVoiceDialogOpen}
                 title={
                     voiceDialogMode.type === "all"
-                        ? "Generate Audio for All Splits"
+                        ? allSplitsHaveAudio
+                            ? "Regenerate Audio for All Splits"
+                            : "Generate Audio for All Splits"
                         : `Generate Audio — ${voiceDialogMode.splitLabel}`
                 }
                 description={
                     voiceDialogMode.type === "all"
-                        ? "Choose a voice and optional style for all splits."
+                        ? allSplitsHaveAudio
+                            ? "All splits already have audio. This will regenerate audio for all splits with the selected voice."
+                            : "Choose a voice and optional style for all splits."
                         : "Choose a voice and optional style for this split."
                 }
                 onSubmit={handleVoiceSubmit}
@@ -1343,12 +1354,16 @@ export default function SplitsPage() {
                 onOpenChange={setVideoDialogOpen}
                 title={
                     videoDialogMode.type === "all"
-                        ? "Generate Videos — All Splits"
+                        ? allSplitsHaveVideo
+                            ? "Regenerate Videos — All Splits"
+                            : "Generate Videos — All Splits"
                         : "Generate Video"
                 }
                 description={
                     videoDialogMode.type === "all"
-                        ? "This will queue video generation for all splits that have audio. Configure resolution and frame rate below."
+                        ? allSplitsHaveVideo
+                            ? "All splits already have video. This will regenerate video for all splits with the selected settings."
+                            : "This will queue video generation for all splits that have audio. Configure resolution and frame rate below."
                         : "Configure resolution and frame rate for this split video."
                 }
                 warningMessage={
@@ -1430,8 +1445,8 @@ export default function SplitsPage() {
                                                     setVoiceDialogOpen(true);
                                                 }}
                                             >
-                                                {AudioIcon}
-                                                Generate Audios
+                                                {allSplitsHaveAudio ? RefreshIcon : AudioIcon}
+                                                {allSplitsHaveAudio ? "Regenerate Audios" : "Generate Audios"}
                                             </DropdownMenuItem>
                                             <DropdownMenuItem
                                                 onClick={() => {
@@ -1440,8 +1455,8 @@ export default function SplitsPage() {
                                                 }}
                                                 disabled={!hasAnyAudio}
                                             >
-                                                {VideoIcon}
-                                                Generate Videos
+                                                {allSplitsHaveVideo ? RefreshIcon : VideoIcon}
+                                                {allSplitsHaveVideo ? "Regenerate Videos" : "Generate Videos"}
                                                 {!hasAnyAudio ? (
                                                     <span className="ml-auto text-[10px] text-neutral-400">
                                                         needs audio

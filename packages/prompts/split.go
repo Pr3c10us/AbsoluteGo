@@ -33,11 +33,11 @@ func ParseSplitScriptResponse(raw string) ([]SplitScriptResult, error) {
 
 func stripCodeFences(s string) string {
 	s = strings.TrimSpace(s)
-	if strings.HasPrefix(s, "```") {
+	if strings.HasPrefix(s, "'''") {
 		if idx := strings.Index(s, "\n"); idx != -1 {
 			s = s[idx+1:]
 		}
-		if strings.HasSuffix(s, "```") {
+		if strings.HasSuffix(s, "'''") {
 			s = s[:len(s)-3]
 		}
 		s = strings.TrimSpace(s)
@@ -118,7 +118,8 @@ You will receive:
 5. **Analyze** each panel's shape on the assigned page (horizontal, vertical, or square)
 6. **Further split** the chapter-page-level segment into panel-level pieces
 7. **Assign** each piece to a specific labeled panel following visual reading order
-8. **Select** a valid motion effect based on panel shape
+8. **Analyze the visual content** of each panel to determine where the action/focal point is located
+9. **Select** a valid motion effect based on panel shape AND the position of the action/focal point (see Effect Direction Selection)
 
 ---
 
@@ -168,7 +169,7 @@ Split the script at these logical points:
 - Significant time jumps
 - Perspective shifts between characters
 - Major dramatic beats or reveals
-- Natural pauses (after `+"`<break time=\"1.5s\" />`"+` or longer)
+- Natural pauses (after \<break time="1.5s" /> or longer)
 
 ### Page Matching Logic
 
@@ -193,9 +194,9 @@ Before assigning panel effects, examine each labeled panel and classify its shap
 
 | Shape | How to Identify | Allowed Effects |
 |-------|-----------------|-----------------|
-| **Horizontal** | Width > Height | `+"`panLeft`"+`, `+"`panRight`"+` ONLY |
-| **Vertical** | Height > Width | `+"`panUp`"+`, `+"`panDown`"+` ONLY |
-| **Square** | Width ≈ Height | `+"`zoomIn`"+`, `+"`zoomOut`"+` ONLY |
+| **Horizontal** | Width > Height | 'panLeft'', 'panRight'' ONLY |
+| **Vertical** | Height > Width | 'panUp'', 'panDown'' ONLY |
+| **Square** | Width ≈ Height | 'zoomIn'', 'zoomOut'' ONLY |
 
 ---
 
@@ -220,12 +221,10 @@ Assume Western reading order unless the comic is clearly manga (Japanese art sty
 For each page, mentally divide it into rows. Within each row, identify which panels appear from left to right (or right to left for manga).
 
 **Example (Western comic with 3 columns, 4 rows):**
-`+"```"+`
 Row 1: [LEFT panel] → [CENTER panel] → [RIGHT panel]
 Row 2: [LEFT panel] → [CENTER panel] → [RIGHT panel]
 Row 3: [LEFT panel] → [CENTER panel] → [RIGHT panel]
 Row 4: [LEFT panel] → [CENTER panel] → [RIGHT panel]
-`+"```"+`
 
 **Step 3: Create your reading sequence**
 
@@ -268,37 +267,102 @@ If the page has multiple panels, **distribute the script across them**. Do not s
 
 ---
 
-## EFFECT SELECTION RULES
+## EFFECT DIRECTION SELECTION (CRITICAL — CONTENT-DRIVEN)
 
-### Effect Definitions
-| Effect | Description |
-|--------|-------------|
-| +"zoomIn"+ | Slowly zoom toward center |
-| +"zoomOut"+ | Start zoomed in, pull back |
-| +"panLeft"+ | Camera moves left (horizontal panels only) |
-| +"panRight"+ | Camera moves right (horizontal panels only) |
-| +"panUp"+ | Camera moves up (vertical panels only) |
-| +"panDown"+ | Camera moves down (vertical panels only) |
+### Core Principle: Follow the Action
 
-	## PANEL-LEVEL SCRIPT SPLITTING
+The direction of every pan or zoom effect must be **driven by the visual content of the panel** — specifically, where the action, focal point, or subject of narrative interest is located within the panel. The camera should move **toward** the most important visual element described in the script segment.
 
-	Split at natural breakpoints:
-	- Between narration and dialogue
-	- Between different actions or beats
-	- Between scene descriptions and character focus
-	- At emotional shifts or dramatic pauses
+### Step-by-Step Direction Selection
 
-	**Do NOT split mid-sentence** unless there's a clear dramatic pause.
+For each panel, after determining its shape and allowed effect type:
 
-	Each segment should be substantial enough to accompany a panel (typically 1-5 lines).
+1. **Identify the focal point:** Look at the panel and determine where the primary action, character, or point of interest is positioned (left, right, top, bottom, center).
+2. **Read the script segment:** Understand what story beat is being conveyed — is it introducing a character, showing impact, revealing something, pulling back for scale?
+3. **Choose the direction that guides the viewer's eye toward the focal point or matches the narrative energy.**
 
-	---
+### Horizontal Panels (panLeft / panRight)
 
-	## OUTPUT FORMAT
+| Focal Point / Action Location | Choose | Reasoning |
+|-------------------------------|--------|-----------|
+| Action is on the **left** side of the panel (e.g., a character punching, an explosion on the left, a figure standing at the left edge) | 'panLeft' | Camera moves left to arrive at / reveal the action |
+| Action is on the **right** side of the panel (e.g., a character reacting on the right, movement toward the right, a reveal on the right edge) | 'panRight' | Camera moves right to arrive at / reveal the action |
+| Character **facing left** or **moving left** |panLef | Follow the direction of movement or gaze |
+| Character **facing right** or **moving right** |panRigh | Follow the direction of movement or gaze |
+| Two characters in conversation (left and right) | Either |panLef if the script segment focuses on the left character's dialogue;panRigh if focusing on the right character |
+| Landscape / environment establishing shot |panRigh | Default for establishing shots (mimics natural L→R reading sweep) |
 
-	Output ONLY a valid JSON array. No Markdown code fences. No commentary.
+**Examples:**
+- A character delivers a punch to a monster on the left side of a wide panel →panLef
+- A car speeds toward the right across a highway →panRigh
+- A character on the left edge looks out over a cityscape →panLef (toward the character)
 
-	`+"```"+`
+### Vertical Panels panU /panDow)
+
+| Focal Point / Action Location | Choose | Reasoning |
+|-------------------------------|--------|-----------|
+| Action or subject is at the **top** of the panel (e.g., a plane flying upward, a figure leaping, something in the sky) |panU | Camera moves up to follow / reveal the subject |
+| Action or subject is at the **bottom** of the panel (e.g., a character's feet, something on the ground, a fallen figure) |panDow | Camera moves down to follow / reveal the subject |
+| **Full-body character shot** (head at top, feet at bottom) |panDow | Camera scans down the character from head to toe, a natural "reveal" of their full presence |
+| Character **looking up** or **reaching upward** |panU | Follow the character's gaze or gesture |
+| Character **falling**, **kneeling**, or **collapsing** |panDow | Follow the downward motion |
+| Something **rising** (smoke, a building, a rocket, a raised weapon) |panU | Follow the upward motion |
+| Something **descending** or **looming from above** |panDow | Follow the descent or let the weight press down |
+| Tall structure establishment (skyscraper, tower, cliff) |panU | Emphasizes height and scale |
+
+**Examples:**
+- A vertical panel shows a superhero's full body in a power pose →panDow (head-to-toe reveal)
+- A vertical panel shows a plane ascending into clouds →panU
+- A vertical panel shows a character plummeting from a rooftop →panDow
+- A vertical panel shows a character looking up at a looming statue →panU (follow the gaze)
+
+### Square Panels zoomI /zoomOu)
+
+| Content / Narrative Beat | Choose | Reasoning |
+|--------------------------|--------|-----------|
+| **Close-up** of a face, object, or detail (the important thing is central) |zoomI | Intensifies focus, draws viewer into the moment |
+| **Emotional intensity** — fear, rage, shock, revelation, intimacy |zoomI | Creates claustrophobic urgency or emotional closeness |
+| A **reveal** or dramatic beat (a key object, a wound, an expression) |zoomI | Spotlight effect on the reveal |
+| **Wide shot** or group scene showing spatial relationships |zoomOu | Pulls back to show context and scale |
+| **Aftermath** or resolution — showing the result of an action |zoomOu | Creates breathing room; lets the viewer absorb |
+| A character shown in their **environment** (establishing context) |zoomOu | Reveals the world around the character |
+| **Transition** or scene-ending beat |zoomOu | Creates a sense of departure or closure |
+| **Tension before action** — a calm-before-the-storm moment |zoomI | Builds suspense by tightening the frame |
+
+**Examples:**
+- A square panel shows a character's terrified face in close-up →zoomI
+- A square panel shows two armies facing off across a battlefield →zoomOu
+- A square panel shows a ticking bomb on a table →zoomI (dramatic focus)
+- A square panel shows a character walking away into the distance →zoomOu
+
+### Effect Alternation for Consecutive Repeats
+
+When the same panel is repeated consecutively, **alternate** the effect direction:
+- Horizontal:panLef →panRigh →panLef
+- Vertical:panU →panDow →panU
+- Square:zoomI →zoomOu →zoomI
+
+This prevents visual monotony and creates a dynamic push-pull rhythm.
+
+---
+
+## PANEL-LEVEL SCRIPT SPLITTING
+
+Split at natural breakpoints:
+- Between narration and dialogue
+- Between different actions or beats
+- Between scene descriptions and character focus
+- At emotional shifts or dramatic pauses
+
+**Do NOT split mid-sentence** unless there's a clear dramatic pause.
+
+Each segment should be substantial enough to accompany a panel (typically 1-5 lines).
+
+---
+
+## OUTPUT FORMAT
+Output ONLY a valid JSON array. No Markdown code fences. No commentary.
+`+"```"+`
 [
 {
 "chapter": <integer: chapter number from bottom right>,
@@ -320,6 +384,7 @@ If the page has multiple panels, **distribute the script across them**. Do not s
 - Preserve all formatting within the script string: `+"`[tags]`"+`, `+"`<break time=\"Xs\" />`"+`, quotation marks
 - Escape internal quotes properly for valid JSON
 - Maintain the chronological order of the story across chapters (Chapter 1 → Chapter 2 → etc.)
+
 
 ---
 
@@ -386,7 +451,7 @@ Note: In this example, the visual reading order was determined to be Panel 2 →
 Before outputting, verify:
 
 ### Chapter-Page-Level Validation
-- [ ] Every entry has both `+"`chapter`"+` and `+"`page`"+` values extracted from the bottom right corner
+- [ ] Every entry has both 'chapter' and 'page' values extracted from the bottom right corner
 - [ ] Chapter numbers increment correctly (1, 2, 3, etc.) when the script transitions between chapters
 - [ ] Page numbers reset to 1 (or start at 1) for each new chapter
 - [ ] No non-story pages are included (covers, credits, ads, title pages, etc.) for body content
@@ -399,12 +464,19 @@ Before outputting, verify:
 - [ ] Are panels assigned in VISUAL reading order (based on position, not label number)?
 - [ ] Did I classify each panel's shape on each page?
 - [ ] Are repeated panels consecutive only?
-- [ ] For each panel, is the effect valid for its shape?
-   - Horizontal: `+"`panLeft`"+` or `+"`panRight`"+` only (no zooming)
-   - Vertical: `+"`panUp`"+` or `+"`panDown`"+` only (no zooming)
-   - Square: `+"`zoomIn`"+` or `+"`zoomOut`"+` only (no panning)
-- [ ] For consecutive repeats, do effects alternate?
 - [ ] Did I use multiple panels per page (not just one panel for everything)?
+
+### Effect Direction Validation (NEW)
+- [ ] For each panel, did I examine **where the action/focal point is** within the panel image?
+- [ ] Does the chosen pan direction **point toward** the action, character, or focal element?
+- [ ] For horizontal panels: Does the pan direction match which side the action is on?
+- [ ] For vertical panels: Does the pan direction follow the motion or body orientation?
+- [ ] For square panels: Does zoom in/out match the emotional intensity and framing?
+- [ ] For consecutive repeats, do effects alternate direction?
+- [ ] For each panel, is the effect valid for its shape?
+   - Horizontal: 'panLeft' or 'panRight' only (no zooming)
+   - Vertical: 'panUp' or 'panDown' only (no zooming)
+   - Square: 'zoomIn' or 'zoomOut' only (no panning)
 
 ### JSON Validation
 - [ ] The JSON is syntactically valid
@@ -423,9 +495,12 @@ Before outputting, verify:
 🚫 **NEVER** treat Chapter 1 Page 2 and Chapter 2 Page 2 as the same page—they are distinct
 
 ### Effect Rules
-🚫 **NEVER** use `+"`zoomIn`"+` or `+"`zoomOut`"+` on a horizontal panel
-🚫 **NEVER** use `+"`zoomIn`"+` or `+"`zoomOut`"+` on a vertical panel
+🚫 **NEVER** use 'zoomIn' or 'zoomOut' on a horizontal panel
+🚫 **NEVER** use 'zoomIn' or 'zoomOut' on a vertical panel
 🚫 **NEVER** use any pan effect on a square panel
+🚫 **NEVER** choose a pan/zoom direction randomly — always base it on the panel's visual content
+✅ **ALWAYS** choose effect direction based on where the action, focal point, or subject is in the panel
+✅ **ALWAYS** follow the direction of motion, gaze, or energy depicted in the panel
 
 ### Panel Order Rules
 🚫 **NEVER** assume panel label numbers (1, 2, 3) reflect the correct reading order
@@ -454,7 +529,6 @@ Before outputting, verify:
 - Do NOT ask follow-up questions
 - Start directly with the opening bracket `+"`[`"+`
 - End with the closing bracket `+"`]`"+`
-
 Your entire response must be valid JSON and nothing else.
 
 ---
@@ -464,6 +538,5 @@ Your entire response must be valid JSON and nothing else.
 **COMPLETE TTS AUDIO DRAMA SCRIPT:**
 %s
 
-**COMIC PAGES:** Provided as images with labeled panels. Each image displays Chapter X Page Y at the bottom right corner.
-`, script)
+**COMIC PAGES:** Provided as images with labeled panels. Each image displays Chapter X Page Y at the bottom right corner.`, script)
 }

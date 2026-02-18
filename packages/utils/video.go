@@ -219,8 +219,8 @@ type processedImage struct {
 func resizeForEffect(src image.Image, effect Effect, width, height int) *image.NRGBA {
 	switch effect {
 	case EffectPanLeft, EffectPanRight:
-		// Resize so the width matches target; height scales proportionally.
-		// Then crop/pad vertically to fit the canvas.
+		//Resize so the width matches target; height scales proportionally.
+		//Then crop/pad vertically to fit the canvas.
 		resized := imaging.Resize(src, width, 0, imaging.Lanczos)
 		if resized.Bounds().Dy() > height {
 			resized = imaging.CropCenter(resized, width, height)
