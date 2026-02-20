@@ -72,10 +72,31 @@ func (service *GenerateVideo) Handle(parameter GenerateVideoParameter) (int64, e
 	}
 	defer os.Remove(blurImage)
 
+	panelOrientation, err := utils.DetectOrientation(file)
+	if err != nil {
+		return 0, err
+	}
+
+	effect := *split.Effect
+	switch panelOrientation {
+	case utils.OrientationHorizontal:
+		if effect != utils.EffectPanRight && effect != utils.EffectPanLeft {
+			effect = utils.EffectPanLeft
+		}
+	case utils.OrientationVertical:
+		if effect != utils.EffectPanUp && effect != utils.EffectPanDown {
+			effect = utils.EffectPanDown
+		}
+	default:
+		if effect != utils.EffectZoomIn {
+			effect = utils.EffectZoomIn
+		}
+	}
+
 	vidData := utils.VideoData{
 		Panel:    file,
 		Duration: *split.AudioDuration,
-		Effect:   *split.Effect,
+		Effect:   effect,
 	}
 
 	videoDir, err := utils.GetDirectory("tmp")

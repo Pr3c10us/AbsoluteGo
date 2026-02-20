@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"github.com/disintegration/imaging"
+	"image"
 	"os"
 	"path/filepath"
 	"sort"
@@ -79,4 +80,42 @@ func SortImages(tempDir string, outputDir string) ([]string, error) {
 	}
 
 	return allImageFiles, nil
+}
+
+// Orientation represents the orientation category of an image.
+type Orientation string
+
+const (
+	OrientationVertical   Orientation = "vertical"
+	OrientationHorizontal Orientation = "horizontal"
+	OrientationSquare     Orientation = "square"
+)
+
+func DetectOrientation(filePath string) (Orientation, error) {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return "", fmt.Errorf("opening image file: %w", err)
+	}
+	defer f.Close()
+
+	cfg, _, err := image.DecodeConfig(f)
+	if err != nil {
+		return "", fmt.Errorf("decoding image config: %w", err)
+	}
+
+	w := cfg.Width
+	h := cfg.Height
+
+	if h == 0 {
+		return "", fmt.Errorf("image has zero height")
+	}
+
+	switch {
+	case 4*w < 3*h:
+		return OrientationVertical, nil
+	case 3*w > 4*h:
+		return OrientationHorizontal, nil
+	default:
+		return OrientationSquare, nil
+	}
 }

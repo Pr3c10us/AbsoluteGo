@@ -8,6 +8,7 @@ import (
 	"github.com/Pr3c10us/absolutego/internals/domains/storage"
 	"github.com/Pr3c10us/absolutego/packages/configs"
 	"github.com/Pr3c10us/absolutego/packages/utils"
+	"time"
 )
 
 type GenerateAudios struct {
@@ -49,11 +50,14 @@ func (service *GenerateAudios) Handle(parameters GenerateAudiosParameters) (int6
 
 	maxWorkers := 20
 	err = utils.RunWorkerPool(splits, maxWorkers, func(j script.Split) error {
-		_, _ = service.generateAudio.Handle(AudioParameter{
-			Id:         j.Id,
-			Voice:      parameters.Voice,
-			VoiceStyle: parameters.VoiceStyle,
-		})
+		_, _ = utils.WithRetry(func() (int64, error) {
+			return service.generateAudio.Handle(AudioParameter{
+				Id:         j.Id,
+				Voice:      parameters.Voice,
+				VoiceStyle: parameters.VoiceStyle,
+			})
+		}, 10, 300*time.Millisecond)
+
 		return nil
 	})
 

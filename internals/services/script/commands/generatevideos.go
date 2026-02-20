@@ -7,6 +7,7 @@ import (
 	"github.com/Pr3c10us/absolutego/internals/domains/storage"
 	"github.com/Pr3c10us/absolutego/packages/configs"
 	"github.com/Pr3c10us/absolutego/packages/utils"
+	"time"
 )
 
 type GenerateVideos struct {
@@ -49,13 +50,16 @@ func (service *GenerateVideos) Handle(parameter GenerateVideosParameter) (int64,
 
 	maxWorkers := 5
 	err = utils.RunWorkerPool(splits, maxWorkers, func(j script.Split) error {
-		_, _ = service.generateVideo.Handle(
-			GenerateVideoParameter{
-				Id:     j.Id,
-				Width:  parameter.Width,
-				Height: parameter.Height,
-				FPS:    parameter.FPS,
-			})
+		_, _ = utils.WithRetry(func() (int64, error) {
+			return service.generateVideo.Handle(
+				GenerateVideoParameter{
+					Id:     j.Id,
+					Width:  parameter.Width,
+					Height: parameter.Height,
+					FPS:    parameter.FPS,
+				})
+		}, 10, 300*time.Millisecond)
+
 		return nil
 	})
 

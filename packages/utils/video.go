@@ -81,7 +81,7 @@ type MergeAudioOptions struct {
 
 func defaultMergeAudioOptions() MergeAudioOptions {
 	return MergeAudioOptions{
-		AudioFade: true,
+		AudioFade: false,
 		Loop:      false,
 		Volume:    1.0,
 	}
@@ -99,7 +99,7 @@ func defaultMergeVideosOptions() MergeVideosOptions {
 		TransitionDuration: 0.5,
 		TransitionEffect:   TransitionFade,
 		HWAccel:            configs.HWAccelNone,
-		GapDuration:        1,
+		GapDuration:        0,
 	}
 }
 
@@ -236,9 +236,10 @@ func resizeForEffect(src image.Image, effect Effect, width, height int) *image.N
 		}
 		return resized
 
-	case EffectZoomIn, EffectZoomOut:
-		// Fill both dimensions (cover) — no letterboxing.
-		return imaging.Fill(src, width, height, imaging.Center, imaging.Lanczos)
+	//case EffectZoomOut:
+	//	// Fill both dimensions (cover) — no letterboxing.
+	//	//return imaging.Fill(src, width, height, imaging.Center, imaging.Lanczos)
+	//	return imaging.Fit(src, width, height, imaging.Lanczos)
 
 	default:
 		// No effect — fit within bounds (existing behavior).

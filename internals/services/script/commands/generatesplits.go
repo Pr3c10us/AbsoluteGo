@@ -60,7 +60,7 @@ func (s *GenerateSplits) Handle(scriptId int64) error {
 		return err
 	}
 
-	splitResponse, err := s.ai.GenerateText(prompts.SplitScriptPrompt(*scr.Content), false, uploadedFiles)
+	splitResponse, err := s.ai.GenerateText(prompts.SplitScriptPrompt(*scr.Content), true, uploadedFiles)
 	if err != nil {
 		return err
 	}
