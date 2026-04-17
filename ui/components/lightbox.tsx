@@ -1,16 +1,9 @@
 "use client";
 
-import {
-    memo,
-    useCallback,
-    useEffect,
-    useRef,
-    useState,
-    type PointerEvent as ReactPointerEvent,
-} from "react";
-import { X, ChevronLeft, ChevronRight, AlignLeft, AudioLines, Video, Play, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useScrollLock } from "@/lib/use-scroll-lock";
+import {memo, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef, useState,} from "react";
+import {AlignLeft, AudioLines, ChevronLeft, ChevronRight, Play, Sparkles, Video, X} from "lucide-react";
+import {Button} from "@/components/ui/button";
+import {useScrollLock} from "@/lib/use-scroll-lock";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -42,32 +35,32 @@ interface LightboxProps {
 
 // ── Static icons (hoisted — rendering-hoist-jsx) ────────────────────────────
 
-const CloseIcon = <X className="h-5 w-5" />;
+const CloseIcon = <X className="h-5 w-5"/>;
 
-const ChevronLeftIcon = <ChevronLeft className="h-6 w-6" />;
+const ChevronLeftIcon = <ChevronLeft className="h-6 w-6"/>;
 
-const ChevronRightIcon = <ChevronRight className="h-6 w-6" />;
+const ChevronRightIcon = <ChevronRight className="h-6 w-6"/>;
 
-const TextIcon = <AlignLeft className="h-4 w-4" />;
+const TextIcon = <AlignLeft className="h-4 w-4"/>;
 
-const LbAudioIcon = <AudioLines className="h-3.5 w-3.5" />;
+const LbAudioIcon = <AudioLines className="h-3.5 w-3.5"/>;
 
-const LbVideoIcon = <Video className="h-3.5 w-3.5" />;
+const LbVideoIcon = <Video className="h-3.5 w-3.5"/>;
 
-const LbPlayIcon = <Play className="h-3.5 w-3.5" />;
+const LbPlayIcon = <Play className="h-3.5 w-3.5"/>;
 
-const LbSparklesIcon = <Sparkles className="h-3.5 w-3.5" />;
+const LbSparklesIcon = <Sparkles className="h-3.5 w-3.5"/>;
 
 // ── Component ───────────────────────────────────────────────────────────────
 
 const Lightbox = memo(function Lightbox({
-    items,
-    currentIndex,
-    onIndexChange,
-    onClose,
-    onGenerateAudio,
-    onGenerateVideo,
-}: LightboxProps) {
+                                            items,
+                                            currentIndex,
+                                            onIndexChange,
+                                            onClose,
+                                            onGenerateAudio,
+                                            onGenerateVideo,
+                                        }: LightboxProps) {
     const [playingAudio, setPlayingAudio] = useState(false);
     const hasPrev = currentIndex > 0;
     const hasNext = currentIndex < items.length - 1;
@@ -127,14 +120,14 @@ const Lightbox = memo(function Lightbox({
     // -- Drag-to-scroll for thumbnail strip --
     const thumbRef = useRef<HTMLDivElement>(null);
     const [thumbDragging, setThumbDragging] = useState(false);
-    const thumbStartRef = useRef({ x: 0, scrollLeft: 0 });
+    const thumbStartRef = useRef({x: 0, scrollLeft: 0});
 
     const onThumbPointerDown = useCallback(
         (e: ReactPointerEvent<HTMLDivElement>) => {
             const el = thumbRef.current;
             if (!el) return;
             setThumbDragging(true);
-            thumbStartRef.current = { x: e.clientX, scrollLeft: el.scrollLeft };
+            thumbStartRef.current = {x: e.clientX, scrollLeft: el.scrollLeft};
             el.setPointerCapture(e.pointerId);
         },
         []
@@ -160,7 +153,7 @@ const Lightbox = memo(function Lightbox({
         if (!el) return;
         const active = el.children[currentIndex] as HTMLElement | undefined;
         if (active) {
-            active.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+            active.scrollIntoView({behavior: "smooth", inline: "center", block: "nearest"});
         }
     }, [currentIndex]);
 
@@ -243,13 +236,17 @@ const Lightbox = memo(function Lightbox({
 
                 {/* ── Description panel ── */}
                 {showText && current.description ? (
-                    <div className="sm:w-80 sm:shrink-0 sm:border-l sm:border-white/10 max-sm:max-h-[35vh] max-sm:border-t max-sm:border-white/10 overflow-y-auto animate-in slide-in-from-right-4 sm:slide-in-from-right-4 max-sm:slide-in-from-bottom-4 duration-200">
+                    <div
+                        className="sm:w-80 sm:shrink-0 sm:border-l sm:border-white/10 max-sm:max-h-[35vh] max-sm:border-t max-sm:border-white/10 overflow-y-auto animate-in slide-in-from-right-4 sm:slide-in-from-right-4 max-sm:slide-in-from-bottom-4 duration-200">
                         <div className="p-4 sm:p-5">
-                            {current.tag ? (
-                                <span className="mb-3 inline-block rounded-[3px_5px_4px_3px] bg-white/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-white/70">
-                                    {current.tag}
-                                </span>
-                            ) : null}
+                            {current.tag ?
+                                //     (
+                                //     <span className="mb-3 inline-block rounded-[3px_5px_4px_3px] bg-white/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-white/70">
+                                //         {current.tag}
+                                //     </span>
+                                // )
+                                null
+                                : null}
                             <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-white/85">
                                 {current.description}
                             </p>
@@ -358,7 +355,7 @@ const Lightbox = memo(function Lightbox({
                             className={`cursor-pointer h-12 w-9 shrink-0 overflow-hidden rounded-[3px_4px_3px_4px] border-2 transition-all sm:h-14 sm:w-10 ${i === currentIndex
                                 ? "border-white shadow-[0_0_8px_rgba(255,255,255,0.3)]"
                                 : "border-transparent opacity-50 hover:opacity-80"
-                                }`}
+                            }`}
                         >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img

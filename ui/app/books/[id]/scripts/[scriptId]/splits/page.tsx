@@ -790,9 +790,9 @@ const SplitCard = memo(function SplitCard({
                             <span className="rounded-[3px_5px_4px_3px] bg-foreground/5 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
                                 ID {split.id}
                             </span>
-                            <span className="rounded-[3px_5px_4px_3px] bg-foreground px-1.5 py-0.5 text-[10px] font-medium text-background">
-                                {EFFECT_LABELS[split.effect] ?? split.effect}
-                            </span>
+                            {/*<span className="rounded-[3px_5px_4px_3px] bg-foreground px-1.5 py-0.5 text-[10px] font-medium text-background">*/}
+                            {/*    {EFFECT_LABELS[split.effect] ?? split.effect}*/}
+                            {/*</span>*/}
                         </div>
                         <p className="text-sm leading-relaxed text-muted-foreground">
                             {split.content}

@@ -20,11 +20,13 @@ type ModelPricing struct {
 }
 
 var modelPricing = map[string]ModelPricing{
+	"gemini-3.1-pro-preview":                        {TextInputPerMillion: 2.00, TextOutputPerMillion: 12.00},
 	"gemini-3-pro-preview":                          {TextInputPerMillion: 2.00, TextOutputPerMillion: 12.00},
 	"gemini-3-flash-preview":                        {TextInputPerMillion: 0.50, AudioInputPerMillion: 1.00, TextOutputPerMillion: 3.00},
 	"gemini-2.5-pro":                                {TextInputPerMillion: 1.25, TextOutputPerMillion: 10.00},
 	"gemini-2.5-flash":                              {TextInputPerMillion: 0.30, AudioInputPerMillion: 1.00, TextOutputPerMillion: 2.50},
 	"gemini-2.5-flash-preview-tts":                  {TextInputPerMillion: 0.50, TextOutputPerMillion: 2.50, AudioOutputPerMillion: 10.00},
+	"gemini-3.1-flash-live-preview":                 {TextInputPerMillion: 0.75, TextOutputPerMillion: 4.50, AudioOutputPerMillion: 12.00},
 	"gemini-2.5-pro-preview-tts":                    {TextInputPerMillion: 1.00, TextOutputPerMillion: 10.00, AudioOutputPerMillion: 20.00},
 	"gemini-2.5-flash-native-audio-preview-12-2025": {TextInputPerMillion: 0.50, AudioInputPerMillion: 3.00, TextOutputPerMillion: 2.00, AudioOutputPerMillion: 12.00},
 	"gemini-2.0-flash":                              {TextInputPerMillion: 0.10, AudioInputPerMillion: 0.70, TextOutputPerMillion: 0.40},
@@ -103,6 +105,9 @@ func (g *GoogleAI) GenerateAudioLive(text string, voice ai.Voice) (*ai.Response,
 	}
 
 	config := &genai.LiveConnectConfig{
+		ThinkingConfig: &genai.ThinkingConfig{
+			ThinkingLevel: genai.ThinkingLevelHigh,
+		},
 		ResponseModalities: []genai.Modality{genai.ModalityAudio},
 		SpeechConfig: &genai.SpeechConfig{
 			VoiceConfig: &genai.VoiceConfig{
@@ -123,14 +128,14 @@ func (g *GoogleAI) GenerateAudioLive(text string, voice ai.Voice) (*ai.Response,
 		}
 	}(session)
 
-	err = session.SendClientContent(genai.LiveClientContentInput{
-		Turns: []*genai.Content{
-			genai.NewContentFromText(text, genai.RoleUser),
-		},
-		TurnComplete: genai.Ptr(true),
+	// For gemini-3.1-flash-live-preview, send_client_content is only supported
+	// for seeding initial history. Use SendRealtimeInput with text instead.
+	err = session.SendRealtimeInput(genai.LiveRealtimeInput{
+		Text: text,
 	})
+
 	if err != nil {
-		return nil, fmt.Errorf("send client content: %w", err)
+		return nil, fmt.Errorf("send realtime input: %w", err)
 	}
 
 	var audioChunks [][]byte
@@ -142,6 +147,8 @@ func (g *GoogleAI) GenerateAudioLive(text string, voice ai.Voice) (*ai.Response,
 			return nil, fmt.Errorf("receive: %w", err)
 		}
 
+		// gemini-3.1-flash-live-preview can return multiple content parts
+		// in a single server event, so process all parts in each message.
 		if msg.ServerContent != nil && msg.ServerContent.ModelTurn != nil {
 			for _, part := range msg.ServerContent.ModelTurn.Parts {
 				if part.InlineData != nil && len(part.InlineData.Data) > 0 {
@@ -156,6 +163,11 @@ func (g *GoogleAI) GenerateAudioLive(text string, voice ai.Voice) (*ai.Response,
 		}
 
 		if msg.ServerContent != nil && msg.ServerContent.TurnComplete {
+			break
+		}
+
+		// Handle GoAway: server is about to terminate the connection
+		if msg.GoAway != nil {
 			break
 		}
 	}
@@ -174,7 +186,6 @@ func (g *GoogleAI) GenerateAudioLive(text string, voice ai.Voice) (*ai.Response,
 	}
 	combinedBase64 := base64.StdEncoding.EncodeToString(combined)
 
-	// Calculate cost
 	dollars := 0.0
 	if pricing, ok := modelPricing[model]; ok {
 		inputCost := (float64(totalInputTokens) / 1_000_000) * pricing.TextInputPerMillion
