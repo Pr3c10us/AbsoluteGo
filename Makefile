@@ -40,7 +40,7 @@ prebuild:
 dev: prebuild
 	@air
 
-build:
+build: db_up
 	@go build -o bin/main ./cmd
 
 run: build

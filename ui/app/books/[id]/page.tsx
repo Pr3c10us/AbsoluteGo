@@ -399,7 +399,7 @@ export default function BookDetailPage() {
     // -- fetch book info (high limit to ensure the current book is found)
     const { data: booksData } = useQuery({
         queryKey: ["books-all"],
-        queryFn: () => fetchBooks({ page: 1, limit: 500 }),
+        queryFn: () => fetchBooks({ page: 1, limit: 100 }),
     });
 
     const book: Book | undefined = booksData?.data?.books?.find((b) => b.id === bookId);

@@ -316,7 +316,7 @@ export default function HomePage() {
       {/* ── Hero ──────────────────────────────────────────────────── */}
       <header className="relative pb-10 pt-20 max-sm:pb-7 max-sm:pt-12">
         <h1 className="text-[clamp(3.5rem,10vw,6rem)] font-bold leading-[0.85] tracking-tighter max-sm:text-5xl">
-          BOOKS
+          Absolute
         </h1>
         {HeroUnderline}
         <span className="mt-4 block text-[11px] font-medium uppercase tracking-[0.3em] text-muted-foreground">
@@ -327,7 +327,7 @@ export default function HomePage() {
       {/* ── Add Book ──────────────────────────────────────────────── */}
       <section className="border-t border-border pb-8 pt-10">
         <h2 className="mb-5 flex items-center gap-2.5 text-2xl font-semibold tracking-tight">
-          Add New Book
+          Add New Manga
         </h2>
         <form
           onSubmit={handleSubmit}
